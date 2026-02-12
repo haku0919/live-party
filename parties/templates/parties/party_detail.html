@@ -1,0 +1,300 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* --- [1. 레이아웃 & 디자인] --- */
+    :root {
+        --chat-bg: #36393f;        /* 채팅 배경 */
+        --sidebar-bg: #2f3136;     /* 사이드바 배경 */
+        --header-bg: #202225;      /* 헤더/입력창 배경 */
+        --my-msg-bg: #5865F2;      /* 내 메시지 (파란색) */
+        --other-msg-bg: #40444b;   /* 상대 메시지 (회색) */
+        --text-color: #dcddde;     /* 기본 텍스트 */
+        --muted-color: #72767d;    /* 흐린 텍스트 */
+    }
+
+    .party-wrapper {
+        display: flex;
+        height: 85vh;
+        max-width: 1200px;
+        margin: 0 auto;
+        gap: 16px;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+
+    /* 좌측 정보 패널 */
+    .info-sidebar {
+        flex: 1;
+        background: var(--sidebar-bg);
+        border-radius: 8px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        min-width: 300px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    /* 우측 채팅 패널 */
+    .chat-main {
+        flex: 2.5;
+        background: var(--chat-bg);
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .chat-header {
+        padding: 16px;
+        background: var(--header-bg);
+        border-bottom: 1px solid rgba(0,0,0,0.2);
+        font-weight: bold;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    #chat-log {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    #chat-log::-webkit-scrollbar { width: 8px; }
+    #chat-log::-webkit-scrollbar-thumb { background: #202225; border-radius: 4px; }
+
+    .message-row { display: flex; flex-direction: column; }
+    .message-row.mine { align-items: flex-end; }
+    .message-row.other { align-items: flex-start; }
+
+    .message-sender {
+        font-size: 12px;
+        color: var(--muted-color);
+        margin-bottom: 4px;
+        margin-left: 4px;
+    }
+    .message-bubble {
+        padding: 10px 14px;
+        border-radius: 8px;
+        color: white;
+        max-width: 70%;
+        word-wrap: break-word;
+        font-size: 15px;
+        line-height: 1.4;
+    }
+    .mine .message-bubble { background: var(--my-msg-bg); border-bottom-right-radius: 0; }
+    .other .message-bubble { background: var(--other-msg-bg); border-bottom-left-radius: 0; }
+
+    .system-message {
+        align-self: center;
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--muted-color);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        margin: 10px 0;
+    }
+
+    .chat-input-area {
+        padding: 20px;
+        background: var(--header-bg);
+        display: flex;
+        gap: 10px;
+    }
+    .chat-input {
+        flex: 1;
+        background: #40444b;
+        border: none;
+        padding: 12px;
+        border-radius: 8px;
+        color: white;
+        font-size: 15px;
+    }
+    .chat-input:focus { outline: none; background: #4f545c; }
+    .send-btn {
+        background: var(--my-msg-bg);
+        color: white;
+        border: none;
+        padding: 0 24px;
+        border-radius: 8px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .send-btn:hover { filter: brightness(1.1); }
+
+    /* 모달 스타일 */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(4px);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+    }
+    .modal-box {
+        background: #36393f;
+        padding: 30px;
+        border-radius: 12px;
+        text-align: center;
+        max-width: 350px;
+        border: 1px solid #202225;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+</style>
+
+<div class="party-wrapper">
+    <div class="info-sidebar">
+        <div style="margin-bottom: auto;">
+            <span style="background: var(--my-msg-bg); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
+                {{ party.game.name }}
+            </span>
+            <h2 style="margin: 12px 0; color: white;">{{ party.title }}</h2>
+            <p style="color: var(--text-color); font-size: 14px; line-height: 1.5;">
+                {{ party.description|default:"파티 설명이 없습니다." }}
+            </p>
+            
+            <hr style="border-color: rgba(255,255,255,0.1); margin: 20px 0;">
+
+            <div style="color: var(--text-color); font-weight: bold; margin-bottom: 10px;">
+                참여 인원 (<span id="member-count">{{ party.current_member_count }}</span>/{{ party.max_members }})
+            </div>
+            <div style="height: 8px; background: #202225; border-radius: 4px; overflow: hidden;">
+                <div id="progress-bar" style="height: 100%; background: #3ba55c; width: calc(({{ party.current_member_count }} / {{ party.max_members }}) * 100%); transition: 0.3s;"></div>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px;">
+            {% if party.host == user %}
+                <form action="{% url 'party_leave' party.id %}" method="post" onsubmit="return confirm('정말 파티를 해체하시겠습니까?\n이 작업은 되돌릴 수 없습니다.');">
+                    {% csrf_token %}
+                    <button type="submit" style="width: 100%; padding: 14px; background: #ed4245; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
+                        💥 파티 해체하기
+                    </button>
+                </form>
+            {% elif is_member %}
+                <form action="{% url 'party_leave' party.id %}" method="post" onsubmit="return confirm('정말 파티에서 나가시겠습니까?');">
+                    {% csrf_token %}
+                    <button type="submit" style="width: 100%; padding: 14px; background: #4f545c; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
+                        👋 파티 나가기
+                    </button>
+                </form>
+            {% else %}
+                <form action="{% url 'party_join' party.id %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit" style="width: 100%; padding: 14px; background: #3ba55c; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
+                        🚀 파티 참여하기
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="chat-main">
+        <div class="chat-header">
+            <span>💬</span>
+            <span>파티 채팅방</span>
+        </div>
+
+        <div id="chat-log">
+            <div class="system-message">채팅방에 연결되었습니다.</div>
+        </div>
+
+        {% if is_member %}
+            <div class="chat-input-area">
+                <input id="chat-message-input" class="chat-input" type="text" placeholder="메시지를 입력하세요...">
+                <button id="chat-message-submit" class="send-btn">전송</button>
+            </div>
+        {% else %}
+            <div style="padding: 20px; text-align: center; color: var(--muted-color); background: var(--header-bg);">
+                파티에 참여해야 채팅할 수 있습니다.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div id="party-end-modal" class="modal-overlay">
+    <div class="modal-box">
+        <div style="font-size: 40px; margin-bottom: 10px;">🚫</div>
+        <h2 style="color: white; margin-bottom: 10px;">파티가 종료되었습니다</h2>
+        <p style="color: var(--text-color); margin-bottom: 20px;">
+            방장이 파티를 해체했습니다.<br>로비로 이동합니다.
+        </p>
+        <button onclick="location.href='{% url 'party_list' %}'" style="background: var(--my-msg-bg); color: white; border: none; padding: 10px 24px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+            확인
+        </button>
+    </div>
+</div>
+
+<script>
+    const partyId = "{{ party.id }}";
+    const currentUserId = "{{ request.user.id }}";
+    const isHost = "{{ is_host|yesno:'true,false' }}" === "true";
+
+    const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+    const chatSocket = new WebSocket(protocol + window.location.host + '/ws/chat/' + partyId + '/');
+
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        const chatLog = document.querySelector('#chat-log');
+
+        if (data.type === 'chat_message') {
+            const isMe = (String(data.sender_id) === String(currentUserId));
+            const senderName = data.sender || '알 수 없음';
+            const msgHTML = `
+                <div class="message-row ${isMe ? 'mine' : 'other'}">
+                    <span class="message-sender">${senderName}</span>
+                    <div class="message-bubble">${data.message}</div>
+                </div>
+            `;
+            chatLog.insertAdjacentHTML('beforeend', msgHTML);
+        } 
+        else if (data.type === 'system_message') {
+            const sysHTML = `<div class="system-message">${data.message}</div>`;
+            chatLog.insertAdjacentHTML('beforeend', sysHTML);
+        }
+        else if (data.type === 'count_update') {
+            const countEl = document.querySelector('#member-count');
+            const barEl = document.querySelector('#progress-bar');
+            if (countEl) countEl.innerText = data.count;
+            if (barEl) {
+                const max = {{ party.max_members }};
+                const pct = (data.count / max) * 100;
+                barEl.style.width = pct + '%';
+            }
+        }
+        else if (data.type === 'party_killed') {
+            if (!isHost) {
+                document.getElementById('party-end-modal').style.display = 'flex';
+            }
+        }
+        chatLog.scrollTop = chatLog.scrollHeight;
+    };
+
+    chatSocket.onclose = function(e) { console.error('Socket closed'); };
+
+    const inputDom = document.querySelector('#chat-message-input');
+    const submitBtn = document.querySelector('#chat-message-submit');
+
+    if (inputDom && submitBtn) {
+        inputDom.focus();
+        inputDom.onkeyup = function(e) { if (e.keyCode === 13) submitBtn.click(); };
+        submitBtn.onclick = function(e) {
+            const message = inputDom.value;
+            if (message.trim() !== "") {
+                chatSocket.send(JSON.stringify({'message': message}));
+                inputDom.value = '';
+            }
+        };
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "parties/base.html" %}
+
+{% block content %}
+<section class="hero" style="max-width: 600px; margin: 0 auto;">
+  <div class="panel">
+    <h1>새 파티 만들기</h1>
+    <p class="lead">팀원들에게 보여줄 정보를 입력해주세요.</p>
+    
+    <form method="post" style="margin-top: 24px;">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div style="background: rgba(255, 92, 92, 0.1); border: 1px solid var(--danger); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+          {% for error in form.non_field_errors %}
+            <p style="color: var(--danger); margin: 0; font-weight: bold;">⚠️ {{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+      
+      {% for field in form %}
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text);">
+            {{ field.label }}
+          </label>
+          {{ field }}
+          {% if field.errors %}
+            {% for error in field.errors %}
+              <div style="color: var(--danger); font-size: 13px; margin-top: 6px;">
+                ⚠️ {{ error }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        </div>
+      {% endfor %}
+      
+      <div style="display: flex; gap: 10px; margin-top: 30px;">
+        <button type="submit" class="btn btn-primary" style="flex: 2;">생성하기</button>
+        <a href="{% url 'party_list' %}" class="btn" style="flex: 1; text-align: center;">취소</a>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

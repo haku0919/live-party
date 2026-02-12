@@ -1,0 +1,30 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<div style="
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center; 
+    height: 70vh; 
+    text-align: center;
+">
+    <div style="font-size: 80px; margin-bottom: 20px;">🔭</div>
+    
+    <h1 style="font-size: 3rem; margin-bottom: 10px;">404 Not Found</h1>
+    
+    <p style="color: var(--muted); font-size: 1.2rem; margin-bottom: 30px;">
+        입력하신 주소가 잘못되었거나,<br>
+        더 이상 존재하지 않는 페이지입니다.
+    </p>
+
+    <a href="{% url 'main' %}" class="btn btn-primary" style="
+        padding: 15px 30px; 
+        font-size: 1.1rem; 
+        border-radius: 30px;
+        text-decoration: none;
+    ">
+        🏠 메인 로비로 돌아가기
+    </a>
+</div>
+{% endblock %}

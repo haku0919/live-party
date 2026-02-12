@@ -1,0 +1,37 @@
+{% extends "account/base.html" %}
+
+{% block content %}
+<div style="max-width:520px; margin:60px auto; padding:22px; background:rgba(28,32,41,.85); border:1px solid rgba(255,255,255,.08); border-radius:14px; text-align:center;">
+
+  <h2 style="margin:0 0 10px;">이메일 인증 메일을 보냈어요</h2>
+
+  <p style="color:rgba(255,255,255,.7); margin:0 0 18px;">
+    메일함에서 인증 링크를 눌러주세요.<br>
+    메일이 안 보이면 스팸함도 확인해보세요.
+  </p>
+
+  <!-- 재전송 버튼 -->
+  <form method="post" action="{% url 'account_email' %}">
+    {% csrf_token %}
+    <button type="submit"
+            style="
+              width:100%;
+              padding:12px;
+              border-radius:12px;
+              border:1px solid rgba(88,101,242,.35);
+              background:linear-gradient(135deg, rgba(88,101,242,.95), rgba(123,133,255,.95));
+              color:#fff;
+              font-weight:800;
+              cursor:pointer;
+            ">
+      인증 메일 다시 보내기
+    </button>
+  </form>
+
+  <div style="margin-top:14px; font-size:13px; color:rgba(255,255,255,.6);">
+    이메일 주소가 잘못됐나요?
+    <a href="{% url 'account_email' %}" style="color:#fff;">이메일 변경</a>
+  </div>
+
+</div>
+{% endblock %}

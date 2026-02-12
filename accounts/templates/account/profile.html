@@ -1,0 +1,177 @@
+{% extends "account/base.html" %}
+{% load static %}
+
+{% block title %}{{ user.nickname }}님의 프로필{% endblock %}
+
+{% block content %}
+<style>
+    /* 프로필 페이지 전용 스타일 (기존 디자인 유지) */
+    .profile-header {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+    
+    .avatar-circle {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--brand), var(--brand2));
+        color: white;
+        font-size: 32px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 20px rgba(88,101,242,.3);
+        border: 2px solid rgba(255,255,255,0.1);
+    }
+
+    .profile-info { flex: 1; }
+    
+    .profile-name {
+        font-size: 26px;
+        font-weight: 800;
+        margin: 0 0 6px;
+        color: var(--text);
+    }
+    
+    .profile-username {
+        color: var(--muted);
+        font-size: 15px;
+        font-weight: 400;
+    }
+
+    /* 게임 태그 디자인 */
+    .game-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+    }
+    
+    .game-tag {
+        background: rgba(255,255,255,0.06);
+        border: 1px solid var(--border);
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 14px;
+        color: var(--text);
+        transition: 0.2s;
+    }
+    
+    .game-tag:hover {
+        background: rgba(255,255,255,0.1);
+        border-color: rgba(255,255,255,0.2);
+    }
+
+    /* 마이크 상태 뱃지 */
+    .mic-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        margin-left: 8px;
+        vertical-align: middle;
+    }
+    .mic-on { background: rgba(46, 204, 113, 0.15); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.3); }
+    .mic-off { background: rgba(255, 92, 92, 0.15); color: #ff5c5c; border: 1px solid rgba(255, 92, 92, 0.3); }
+
+    @media (max-width: 600px) {
+        .profile-header { flex-direction: column; text-align: center; }
+        .game-tags { justify-content: center; }
+    }
+</style>
+
+<section class="hero">
+    
+    <div class="panel profile-header">
+        <div class="avatar-circle">
+            {{ user.nickname|slice:":1" }}
+        </div>
+
+        <div class="profile-info">
+            <h1 class="profile-name">
+                {{ user.nickname }}
+                {% if user.mic_enabled %}
+                    <span class="mic-badge mic-on">🎤 마이크 ON</span>
+                {% else %}
+                    <span class="mic-badge mic-off">🔇 마이크 OFF</span>
+                {% endif %}
+            </h1>
+            <span class="profile-username">@{{ user.username }}</span>
+        </div>
+
+        <a href="#" class="btn btn-primary">프로필 수정</a>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <p class="card-title">👤 플레이어 정보</p>
+            <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color:var(--muted)">성별</span>
+                    <span>{{ user.get_gender_display }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color:var(--muted)">가입일</span>
+                    <span>{{ user.date_joined|date:"Y.m.d" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <p class="card-title">🎮 주 플레이 게임</p>
+            <div class="game-tags">
+                {% for game in user.main_games.all %}
+                    <span class="game-tag">{{ game.name }}</span>
+                {% empty %}
+                    <span style="color:var(--muted); font-size:14px;">등록된 게임이 없습니다.</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <p class="card-title" style="margin-bottom: 15px;">매칭 히스토리 (최근 5개)</p>
+        
+        <div style="display: flex; flex-direction: column;">
+            {% for match in recent_matches %}
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border);">
+                    
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                            <span class="game-tag" style="padding: 2px 8px; font-size: 11px; margin: 0;">{{ match.party.game.name }}</span>
+                            <strong style="color: var(--text);">{{ match.party.title }}</strong>
+                        </div>
+                        <small style="color: var(--muted); font-size: 13px;">{{ match.joined_at|date:"Y.m.d H:i" }} 참여</small>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        {% if match.party.status == "CLOSED" %}
+                            <span style="color: var(--muted); font-size: 12px; font-weight: bold;">종료됨</span>
+                        {% else %}
+                            <span style="color: #4cd137; font-size: 12px; font-weight: bold;">진행 중</span>
+                            
+                            <a href="{% url 'party_detail' match.party.id %}" 
+                               class="btn" 
+                               style="padding: 4px 12px; font-size: 12px; min-width: auto; height: auto;">
+                               입장 🚀
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% empty %}
+                <div style="text-align: center; padding: 30px 0;">
+                    <p class="card-text" style="margin-bottom: 15px; color: var(--muted);">아직 참여한 파티 기록이 없어요.</p>
+                    <a href="{% url 'party_list' %}" class="btn">파티 찾으러 가기</a>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</section>
+{% endblock %}

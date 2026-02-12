@@ -1,0 +1,165 @@
+{% extends "account/base.html" %}
+{% load widget_tweaks %}
+
+{% block title %}회원가입{% endblock %}
+
+{% block content %}
+<style>
+  /* --- 레이아웃 --- */
+  .signup-wrap{max-width:520px; margin:46px auto 70px;}
+  .signup-card{background: rgba(28,32,41,.85); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 18px;}
+  .title{margin:0; font-size:22px; font-weight:800;}
+  .desc{margin:6px 0 14px; color:rgba(255,255,255,.65); font-size:14px; line-height:1.6;}
+  .hr{border:0; border-top:1px solid rgba(255,255,255,.08); margin:14px 0;}
+
+  /* --- 입력 필드 공통 --- */
+  .field{margin:10px 0;}
+  .podo-input{width:100%; padding:12px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.10); background: rgba(255,255,255,.04); color:rgba(255,255,255,.92); outline:none; transition: 0.2s;}
+  .podo-input:focus{border-color: rgba(88,101,242,.55); background: rgba(255,255,255,.06);}
+  .error{border-color: rgba(255,92,92,.65) !important;}
+  .error-message{color:#ff7a7a; font-size:13px; margin-top:6px;}
+
+  /* --- 그리드 레이아웃 (반반) --- */
+  .two{display:grid; grid-template-columns: 1fr 1fr; gap:10px;}
+  @media (max-width:640px){ .two{grid-template-columns:1fr;} }
+
+  /* --- 게임 선택 체크박스 --- */
+  .games{display:grid; grid-template-columns: repeat(2, 1fr); gap:10px;}
+  @media (max-width:520px){ .games{grid-template-columns:1fr;} }
+  .game-item{position:relative;}
+  .games input[type="checkbox"]{position:absolute; opacity:0; pointer-events:none;}
+  .games label{display:flex; align-items:center; justify-content:space-between; height:50px; padding:0 14px; border-radius:12px; border:1px solid rgba(255,255,255,.10); background: rgba(255,255,255,.03); cursor:pointer; font-size:14px;}
+  /* 체크되었을 때 스타일 */
+  .games input[type="checkbox"]:checked + label{
+    border-color: rgba(88,101,242,.55); 
+    background: linear-gradient(135deg, rgba(88,101,242,.18), rgba(123,133,255,.10));
+    font-weight: 700;
+  }
+
+  /* --- [NEW] 마이크 체크박스 스타일 --- */
+  .checkbox-wrap {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .checkbox-wrap:hover { background: rgba(255, 255, 255, 0.07); }
+  .checkbox-wrap input[type="checkbox"] {
+    width: 18px; height: 18px;
+    accent-color: #5865F2; /* 브랜드 컬러 */
+    cursor: pointer;
+  }
+  .checkbox-label { font-size: 15px; color: rgba(255, 255, 255, 0.9); font-weight: 600; }
+
+  /* --- 버튼 (수정됨: .signup-card 안에서만 적용) --- */
+  .signup-card .btn{
+    width:100%; padding:14px; 
+    border-radius:12px; 
+    border:1px solid rgba(88,101,242,.35); 
+    background: linear-gradient(135deg, rgba(88,101,242,.95), rgba(123,133,255,.95)); 
+    color:#fff; font-size:16px; font-weight:800; 
+    cursor:pointer; margin-top:20px;
+    transition: filter 0.2s;
+  }
+  .signup-card .btn:hover { filter: brightness(1.1); }
+
+  .footer{max-width:520px; margin:14px auto 0; color:rgba(255,255,255,.65); font-size:13px; text-align:center;}
+  .footer a{color:rgba(255,255,255,.9); text-decoration:none; font-weight:600;}
+
+  /* --- [NEW] 숫자 입력칸 화살표(스피너) 제거 --- */
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type=number] { -moz-appearance: textfield; }
+</style>
+
+<div class="signup-wrap">
+  <div class="signup-card">
+    <h2 class="title">회원가입</h2>
+    <p class="desc">게임 파티 매칭을 위해 기본 정보를 입력해주세요.</p>
+
+    <form method="post" action="{% url 'account_signup' %}">
+      {% csrf_token %}
+
+      {% for e in form.non_field_errors %}
+        <div class="error-message" style="margin-bottom:10px;">🚨 {{ e }}</div>
+      {% endfor %}
+
+      <div class="field">
+        {{ form.username|add_class:"podo-input"|attr:"placeholder:아이디(로그인용)"|add_error_class:"error" }}
+        {% for error in form.username.errors %}<div class="error-message">{{ error }}</div>{% endfor %}
+      </div>
+
+      <div class="field">
+        {{ form.email|add_class:"podo-input"|attr:"placeholder:이메일(선택)"|add_error_class:"error" }}
+        {% for error in form.email.errors %}<div class="error-message">{{ error }}</div>{% endfor %}
+      </div>
+
+      <div class="two">
+        <div class="field">
+          {{ form.password1|add_class:"podo-input"|attr:"placeholder:비밀번호"|add_error_class:"error" }}
+          {% for error in form.password1.errors %}<div class="error-message">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="field">
+          {{ form.password2|add_class:"podo-input"|attr:"placeholder:비밀번호 확인"|add_error_class:"error" }}
+          {% for error in form.password2.errors %}<div class="error-message">{{ error }}</div>{% endfor %}
+        </div>
+      </div>
+
+      <hr class="hr"/>
+
+      <div class="field">
+        {{ form.nickname|add_class:"podo-input"|attr:"placeholder:닉네임(파티에서 사용)"|add_error_class:"error" }}
+        {% for error in form.nickname.errors %}<div class="error-message">{{ error }}</div>{% endfor %}
+      </div>
+
+      <div class="field">
+        {{ form.phone|add_class:"podo-input"|attr:"placeholder:전화번호 (예: 01012345678)"|add_error_class:"error" }}
+        {% for error in form.phone.errors %}<div class="error-message">{{ error }}</div>{% endfor %}
+      </div>
+
+      <div class="two">
+        <div class="field">
+          {{ form.birth_year|add_class:"podo-input"|add_error_class:"error" }}
+          {% for error in form.birth_year.errors %}<div class="error-message">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="field">
+          {{ form.gender|add_class:"podo-input"|add_error_class:"error" }}
+          {% for error in form.gender.errors %}<div class="error-message">{{ error }}</div>{% endfor %}
+        </div>
+      </div>
+
+      <hr class="hr"/>
+
+      <div class="field">
+        <label class="checkbox-wrap">
+          {{ form.mic_enabled }}
+          <span class="checkbox-label">🎙️ 마이크 사용 가능 (보이스 참여)</span>
+        </label>
+      </div>
+
+      <div class="field">
+        <div style="margin:8px 0; color:rgba(255,255,255,.75); font-size:14px; font-weight:600;">주로 하는 게임 (다중 선택)</div>
+        <div class="games">
+          {% for checkbox in form.main_games %}
+            <div class="game-item">
+              {{ checkbox.tag }}
+              <label for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
+            </div>
+          {% endfor %}
+        </div>
+        {% for error in form.main_games.errors %}<div class="error-message">{{ error }}</div>{% endfor %}
+      </div>
+
+      <button class="btn" type="submit">가입 완료</button>
+      
+    </form>
+  </div>
+</div>
+
+<div class="footer">
+  이미 계정이 있으신가요? <a href="{% url 'account_login' %}">로그인</a>
+</div>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "parties/base.html" %}
+
+{% block content %}
+<div class="container" style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+    
+    <div style="margin-bottom: 30px;">
+        <h2 style="margin: 0;">🔭 파티 찾기</h2>
+        <p style="color: var(--muted); margin-top: 5px;">원하는 파티를 찾아보거나 직접 만들어보세요.</p>
+    </div>
+
+    <div class="grid" id="party-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+        
+        <a href="{% url 'party_create' %}" class="card" style="
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            text-decoration: none; 
+            border: 2px dashed var(--border); 
+            background: rgba(255,255,255,0.02); 
+            color: var(--muted); 
+            transition: all 0.2s ease;
+            min-height: 250px; /* 다른 카드들과 높이 맞춤 */
+        " onmouseover="this.style.borderColor='var(--primary)'; this.style.color='var(--primary)';" 
+          onmouseout="this.style.borderColor='var(--border)'; this.style.color='var(--muted)';">
+            
+            <div style="font-size: 40px; margin-bottom: 15px;">➕</div>
+            <h3 style="margin: 0; font-size: 1.2rem;">새 파티 만들기</h3>
+            <p style="font-size: 0.9rem; margin-top: 5px;">내가 원하는 게임을 모집해보세요!</p>
+        </a>
+
+        {% for party in parties %}
+        <div class="card" style="position: relative; padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface);">
+            
+            <a href="{% url 'party_detail' party.pk %}" style="text-decoration: none; color: inherit; display: block;">
+                <span class="pill" style="background: var(--primary); color: white; padding: 4px 10px; border-radius: 15px; font-size: 12px;">{{ party.game.name }}</span>
+                <h3 style="margin: 15px 0 10px;">{{ party.title }}</h3>
+                <p style="color: var(--muted); font-size: 0.9rem; line-height: 1.5; min-height: 40px;">
+                    {{ party.description|truncatechars:50|default:"설명이 없습니다." }}
+                </p>
+                
+                <div style="margin-top: 15px; font-weight: bold; display: flex; align-items: center; gap: 5px;">
+                    <span>👥</span> 
+                    <span>{{ party.current_member_count }} / {{ party.max_members }}</span>
+                </div>
+            </a>
+
+            <div class="card-footer" style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 15px;">
+                
+                {% if user == party.host or user in party.members.all %}
+                    <a href="{% url 'party_detail' party.pk %}" class="btn" style="width: 100%; display: block; text-align: center; background: var(--surface-hover); border: 1px solid var(--border);">
+                        🚀 채팅방 입장
+                    </a>
+
+                {% elif party.current_member_count < party.max_members %}
+                    <form action="{% url 'party_join' party.pk %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">
+                            ⚡️ 바로 참여하기
+                        </button>
+                    </form>
+
+                {% else %}
+                    <button class="btn" disabled style="width: 100%; background: #eee; color: #999; cursor: not-allowed;">
+                        ⛔️ 모집 마감
+                    </button>
+                {% endif %}
+                
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

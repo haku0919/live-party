@@ -1,0 +1,40 @@
+{% extends "core/base.html" %}
+
+{% block title %}Party Match{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="hero-grid">
+    <div class="panel">
+      <h1>실시간으로 파티 만들고<br>바로 같이 플레이해요.</h1>
+      <p class="lead">
+        게임 / 모드 / 인원만 고르면 파티가 생성되고, 바로 채팅방이 열립니다.
+        디스코드 친추든, 듀오든, 스크림이든 — 필요한 사람을 빠르게 모아보세요.
+      </p>
+
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="{% url 'party_list' %}">파티 찾기</a>
+        <a class="btn" href="{% url 'party_create' %}">파티 만들기</a>
+      </div>
+    </div>
+
+    <div class="panel">
+      <p class="card-title">이런 분들에게 좋아요</p>
+      <p class="card-text">• 혼자 하기 심심할 때 빠르게 팀원 모집</p>
+      <p class="card-text">• 내 주 게임/마이크 여부로 편하게 매칭</p>
+      <p class="card-text">• 파티별 실시간 채팅으로 바로 합류</p>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <p class="card-title">⚡ 실시간 파티</p>
+      <p class="card-text">방 만들면 즉시 오픈되고, 인원 모이면 바로 출발.</p>
+    </div>
+    <div class="card">
+      <p class="card-title">💬 파티 채팅</p>
+      <p class="card-text">파티별 채팅방으로 디코/닉 공유까지 한 번에.</p>
+    </div>
+  </div>
+</section>
+{% endblock %}

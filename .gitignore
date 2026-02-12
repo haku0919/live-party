@@ -1,0 +1,17 @@
+# Django 기본
+*.log
+*.pot
+*.pyc
+__pycache__/
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+
+# 가상환경 (폴더명이 venv가 아니면 그 이름으로 바꾸세요)
+venv/
+env/
+.env
+
+# 운영체제 잡동사니 (Mac 쓰시니까 필수)
+.DS_Store

@@ -1,0 +1,85 @@
+{% extends "account/base.html" %}
+{% load widget_tweaks %}
+
+{% block title %}로그인{% endblock %}
+
+{% block content %}
+<style>
+  .auth-wrap{max-width:420px; margin:46px auto 70px;}
+  .auth-card{
+    background: rgba(28,32,41,.85);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 14px;
+    padding: 18px;
+  }
+  .auth-title{margin:0 0 10px; font-size:22px; font-weight:800;}
+  .auth-desc{margin:0 0 14px; color:rgba(255,255,255,.65); font-size:14px; line-height:1.6;}
+  .field{margin:10px 0;}
+  .label{display:block; margin-bottom:6px; color:rgba(255,255,255,.75); font-size:13px;}
+  .input{
+    width:100%;
+    padding:12px 12px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.04);
+    color:rgba(255,255,255,.92);
+    outline:none;
+  }
+  .input:focus{border-color: rgba(88,101,242,.55);}
+  .btn-wide{
+    width:100%;
+    padding:12px 12px;
+    border-radius:12px;
+    border:1px solid rgba(88,101,242,.35);
+    background: linear-gradient(135deg, rgba(88,101,242,.95), rgba(123,133,255,.95));
+    color:#fff;
+    font-weight:800;
+    cursor:pointer;
+    margin-top:10px;
+  }
+  .btn-wide:hover{filter:brightness(1.03)}
+  .help{
+    display:flex; justify-content:space-between; gap:10px;
+    margin-top:12px; font-size:13px; color:rgba(255,255,255,.65);
+  }
+  .help a{color:rgba(255,255,255,.85)}
+  .err{color:#ff7a7a; font-size:13px; margin-top:6px;}
+</style>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h2 class="auth-title">로그인</h2>
+    <p class="auth-desc">계정으로 로그인해서 파티를 만들고 바로 채팅에 참여하세요.</p>
+
+    <form method="post" action="{% url 'account_login' %}">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+
+      <div class="field">
+        <label class="label" for="{{ form.login.id_for_label }}">아이디 또는 이메일</label>
+        {% render_field form.login class="input" placeholder="username 또는 email" %}
+        {% for e in form.login.errors %}<div class="err">{{ e }}</div>{% endfor %}
+      </div>
+
+      <div class="field">
+        <label class="label" for="{{ form.password.id_for_label }}">비밀번호</label>
+        {% render_field form.password class="input" placeholder="password" %}
+        {% for e in form.password.errors %}<div class="err">{{ e }}</div>{% endfor %}
+      </div>
+
+      {% if form.remember %}
+      <div class="field" style="display:flex; gap:8px; align-items:center;">
+        {{ form.remember }} <span style="color:rgba(255,255,255,.75); font-size:13px;">로그인 유지</span>
+      </div>
+      {% endif %}
+
+      <button class="btn-wide" type="submit">로그인</button>
+    </form>
+
+    <div class="help">
+      <a href="#">회원가입</a>
+      <a href="#">비밀번호 찾기</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
