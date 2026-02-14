@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Party, PartyMember
+from .models import Party, PartyMember, BlackList
 
 
 @admin.register(Party)
@@ -21,9 +21,16 @@ class PartyMemberAdmin(admin.ModelAdmin):
     list_display = ("id", "party", "user", "is_active", "joined_at")
     
     # ❌ search_fields에서 "party__partyName" 제거
-    # ✅ "party__mode"로 검색 가능하도록 수정
     search_fields = ("party__mode", "user__username", "user__nickname")
     
     list_filter = ("is_active", "joined_at")
+    ordering = ("-id",)
+    autocomplete_fields = ("party", "user")
+
+@admin.register(BlackList)
+class BlackListAdmin(admin.ModelAdmin):
+    list_display = ("id", "party", "user", "created_at")
+    search_fields = ("party__mode", "user__username")
+    list_filter = ("created_at",)
     ordering = ("-id",)
     autocomplete_fields = ("party", "user")

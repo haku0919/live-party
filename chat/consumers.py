@@ -31,10 +31,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = data['message']
         nickname = getattr(self.user, 'nickname', self.user.username)
 
-        # ✅ 메시지를 DB에 비동기로 저장
         await self.save_message(message)
 
-        # 일반 채팅 메시지 전송
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -45,7 +43,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             }
         )
 
-    # ✅ DB 저장을 위한 헬퍼 함수
     @database_sync_to_async
     def save_message(self, message):
         try:
@@ -74,3 +71,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
     
     async def count_update(self, event):
         await self.send(text_data=json.dumps(event))
+
+    # ============================================================
+    # ✅ [여기부터 추가된 부분] 실시간 멤버 리스트 업데이트 함수
+    # ============================================================
+    async def member_list_update(self, event):
+        # signals.py에서 보낸 멤버 리스트(event["members"])를
+        # 브라우저(HTML/JS)에게 그대로 전달합니다.
+        await self.send(text_data=json.dumps({
+            "type": "member_list_update",
+            "members": event["members"]
+        }))
+    # ============================================================
+    # ✅ [여기까지 추가 끝]
+    # ============================================================

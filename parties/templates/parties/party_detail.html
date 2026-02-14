@@ -155,51 +155,89 @@
     .desc-scroll::-webkit-scrollbar { width: 6px; }
     .desc-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
     .desc-scroll::-webkit-scrollbar-track { background: transparent; }
+
+    /* ✅ [추가됨] 멤버 리스트 아이템 스타일 */
+    .member-item {
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center;
+        background: rgba(255,255,255,0.04); 
+        padding: 10px; 
+        border-radius: 8px; 
+        margin-bottom: 8px;
+        transition: background 0.2s;
+    }
+    .member-item:hover { 
+        background: rgba(255,255,255,0.08); 
+    }
 </style>
 
 <div class="party-wrapper">
     <div class="info-sidebar">
-        <div style="margin-bottom: auto;">
-            <div style="display:flex; gap:10px; margin-bottom:12px;">
-                <span style="background: var(--my-msg-bg); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
-                    {{ party.game.name }}
-                </span>
-                {% if party.mic_required %}
-                <span style="background: #eb4d4b; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
-                    🎙️ 마이크 필수
-                </span>
-                {% endif %}
-            </div>
-
-            <h2 style="margin: 0 0 12px; color: white;">{{ party.mode }}</h2>
-            
-            <div class="desc-scroll" style="
-                max-height: 400px; 
-                overflow-y: auto; 
-                padding-right: 10px; 
-                margin-bottom: 20px;
-            ">
-                <p style="
-                    color: var(--text-color); 
-                    font-size: 14px; 
-                    line-height: 1.6;
-                    margin: 0;
-                    white-space: pre-wrap;
-                    word-break: break-all;
-                ">{{ party.description|default:"파티 설명이 없습니다." }}</p>
-            </div>
-            
-            <hr style="border-color: rgba(255,255,255,0.1); margin: 20px 0;">
-
-            <div style="color: var(--text-color); font-weight: bold; margin-bottom: 10px;">
-                참여 인원 (<span id="member-count">{{ party.current_member_count }}</span>/{{ party.max_members }})
-            </div>
-            <div style="height: 8px; background: #202225; border-radius: 4px; overflow: hidden;">
-                <div id="progress-bar" style="height: 100%; background: #3ba55c; width: calc(({{ party.current_member_count }} / {{ party.max_members }}) * 100%); transition: 0.3s;"></div>
-            </div>
+        <div style="display:flex; gap:10px; margin-bottom:12px;">
+            <span style="background: var(--my-msg-bg); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
+                {{ party.game.name }}
+            </span>
+            {% if party.mic_required %}
+            <span style="background: #eb4d4b; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
+                🎙️ 마이크 필수
+            </span>
+            {% endif %}
         </div>
 
-        <div style="margin-top: 20px;">
+        <h2 style="margin: 0 0 12px; color: white;">{{ party.mode }}</h2>
+        
+        <div class="desc-scroll" style="
+            max-height: 200px; 
+            overflow-y: auto; 
+            padding-right: 10px; 
+            margin-bottom: 20px;
+        ">
+            <p style="
+                color: var(--text-color); 
+                font-size: 14px; 
+                line-height: 1.6;
+                margin: 0;
+                white-space: pre-wrap;
+                word-break: break-all;
+            ">{{ party.description|default:"파티 설명이 없습니다." }}</p>
+        </div>
+        
+        <hr style="border-color: rgba(255,255,255,0.1); margin: 20px 0;">
+
+        <div style="color: var(--text-color); font-weight: bold; margin-bottom: 10px;">
+            참여 인원 (<span id="member-count">{{ party.current_member_count }}</span>/{{ party.max_members }})
+        </div>
+        <div style="height: 8px; background: #202225; border-radius: 4px; overflow: hidden; margin-bottom: 15px;">
+            <div id="progress-bar" style="height: 100%; background: #3ba55c; width: calc(({{ party.current_member_count }} / {{ party.max_members }}) * 100%); transition: 0.3s;"></div>
+        </div>
+
+        <div style="color: var(--text-color); font-weight: bold; margin-bottom: 10px;">
+            참여 멤버 리스트
+        </div>
+
+        <div id="member-list-container" style="flex: 1; overflow-y: auto; margin-bottom: 20px;">
+            {% for member in active_members %}
+            <div class="member-item">
+                <span style="color: #dcddde; font-weight: 500;">
+                    {{ member.user.nickname }} 
+                    
+                    {% if party.host == member.user %}👑{% endif %}
+                    
+                    {% if request.user == member.user %}
+                        <span style="font-size: 12px; color: #3ba55c; margin-left: 5px;">(나)</span>
+                    {% endif %}
+                </span>
+                
+                {% if is_host and member.user != party.host %}
+                <button style="background: none; border: none; color: #ed4245; cursor: pointer; font-size: 18px; padding: 0 5px;" title="강퇴하기">×</button>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div style="color: #72767d; text-align: center; padding: 20px;">멤버 정보를 불러오는 중...</div>
+            {% endfor %}
+        </div>
+        <div style="margin-top: auto;">
             {% if party.host == user %}
                 <form action="{% url 'party_leave' party.id %}" method="post" onsubmit="return confirm('정말 파티를 해체하시겠습니까?\n이 작업은 되돌릴 수 없습니다.');">
                     {% csrf_token %}

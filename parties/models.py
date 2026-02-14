@@ -43,3 +43,13 @@ class PartyMember(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["party", "user"], name="unique_party_member")
         ]
+
+class BlackList(models.Model):
+    party = models.ForeignKey(Party, on_delete=models.CASCADE, related_name="blacklist")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="blacklisted_in_parties")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["party", "user"], name="unique_blacklist_entry")
+        ]

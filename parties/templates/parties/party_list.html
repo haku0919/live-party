@@ -8,49 +8,122 @@
         <p style="color: var(--muted); margin-top: 5px;">현재 활성화된 파티 목록입니다.</p>
     </div>
 
-    <div class="grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+    <div id="party-grid" class="grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
         
-        <a href="{% url 'party_create' %}" class="card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; border: 2px dashed rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); color: var(--muted); transition: all 0.2s ease; min-height: 250px; border-radius: 12px;">
+        <a href="{% url 'party_create' %}" class="card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; border: 2px dashed rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); color: var(--muted); transition: all 0.2s ease; min-height: 250px; border-radius: 12px; order: -9999;">
             <div style="font-size: 40px; margin-bottom: 15px;">➕</div>
             <h3 style="margin: 0;">새 파티 만들기</h3>
         </a>
 
         {% for party in parties %}
-        <div class="card" style="padding: 20px; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; background: #2f3136; display: flex; flex-direction: column; justify-content: space-between;">
-            
-            <a href="{% url 'party_detail' party.pk %}" style="text-decoration: none; color: inherit; display: block;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-                    <span style="background: var(--brand); color: white; padding: 4px 10px; border-radius: 15px; font-size: 11px; font-weight: bold;">
-                        {{ party.game.name }}
-                    </span>
-                    {% if party.mic_required %}
-                    <span style="color: #eb4d4b; font-size: 12px; font-weight: bold;">🎙️ 마이크 필수</span>
+            <div id="party-card-{{ party.id }}" class="card" style="padding: 20px; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; background: #2f3136; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s;">
+                
+                <a href="{% url 'party_detail' party.pk %}" style="text-decoration: none; color: inherit; display: block; flex: 1;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                        <span class="badge-game" style="background: var(--brand); color: white; padding: 4px 10px; border-radius: 15px; font-size: 11px; font-weight: bold;">
+                            {{ party.game.name }}
+                        </span>
+                        {% if party.mic_required %}
+                        <span style="color: #eb4d4b; font-size: 12px; font-weight: bold;">🎙️ 마이크 필수</span>
+                        {% endif %}
+                    </div>
+
+                    <h3 style="margin: 0 0 10px; font-size: 1.4rem; color: white;">{{ party.mode }}</h3>
+                    
+                    <p style="color: var(--muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px; min-height: 45px;">
+                        {{ party.description|truncatechars:60|default:"설명 없이 쿨하게 모집 중..." }}
+                    </p>
+                    
+                    <div style="display: flex; align-items: center; gap: 10px; color: #b9bbbe; font-size: 14px;">
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <span style="width: 8px; height: 8px; border-radius: 50%; background: #3ba55c;"></span>
+                            <span class="member-info">{{ party.current_member_count }} / {{ party.max_members }}명</span>
+                        </div>
+                        <span style="color: rgba(255,255,255,0.1);">|</span>
+                        <span>{{ party.host.nickname|default:party.host.username }}</span>
+                    </div>
+                </a>
+
+                <div style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
+                    {% if request.user in party.members.all %}
+                        <a href="{% url 'party_detail' party.pk %}" class="btn" style="width: 100%; display: block; text-align: center; background: #4f545c; color: white; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; transition: 0.2s;">
+                            이미 참여중 (입장)
+                        </a>
+                    {% else %}
+                        <form action="{% url 'party_join' party.pk %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="btn" style="width: 100%; display: block; text-align: center; background: var(--brand); color: white; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; transition: 0.2s; border: none; cursor: pointer;">
+                                참여하기
+                            </button>
+                        </form>
                     {% endif %}
                 </div>
-
-                <h3 style="margin: 0 0 10px; font-size: 1.4rem; color: white;">{{ party.mode }}</h3>
-                
-                <p style="color: var(--muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px; min-height: 45px;">
-                    {{ party.description|truncatechars:60|default:"설명 없이 쿨하게 모집 중..." }}
-                </p>
-                
-                <div style="display: flex; align-items: center; gap: 10px; color: #b9bbbe; font-size: 14px;">
-                    <div style="display: flex; align-items: center; gap: 4px;">
-                        <span style="width: 8px; height: 8px; border-radius: 50%; background: #3ba55c;"></span>
-                        <span>{{ party.current_member_count }} / {{ party.max_members }}명</span>
-                    </div>
-                    <span style="color: rgba(255,255,255,0.1);">|</span>
-                    <span>{{ party.host.nickname|default:party.host.username }}</span>
-                </div>
-            </a>
-
-            <div style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
-                <a href="{% url 'party_detail' party.pk %}" class="btn" style="width: 100%; display: block; text-align: center; background: var(--brand); color: white; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; transition: 0.2s;">
-                    참여하기
-                </a>
             </div>
-        </div>
         {% endfor %}
     </div>
 </div>
+
+<script>
+    const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+    const lobbySocket = new WebSocket(protocol + window.location.host + '/ws/lobby/');
+
+    lobbySocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        const grid = document.getElementById('party-grid');
+
+        // 1. 파티 정보 업데이트
+        if (data.type === 'party_update') {
+            const p = data.party_data;
+            const cardId = `party-card-${p.id}`;
+            const existingCard = document.getElementById(cardId);
+
+            // (A) 기존 카드 업데이트 (제목, 인원수 등)
+            if (existingCard) {
+                existingCard.querySelector('h3').innerText = p.title;
+                existingCard.querySelector('.member-info').innerText = `${p.current_count} / ${p.max_members}명`;
+            } 
+            // (B) 새 파티 카드 생성
+            else if (data.is_new) {
+                // CSRF 토큰 가져오기 (JS에서 폼 전송을 위해 필요)
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                
+                const newCardHtml = `
+                <div id="${cardId}" class="card" style="padding: 20px; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; background: #2f3136; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s;">
+                    <a href="/parties/${p.id}/" style="text-decoration: none; color: inherit; display: block; flex: 1;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                            <span class="badge-game" style="background: var(--brand); color: white; padding: 4px 10px; border-radius: 15px; font-size: 11px; font-weight: bold;">${p.game}</span>
+                        </div>
+                        <h3 style="margin: 0 0 10px; font-size: 1.4rem; color: white;">${p.title}</h3>
+                        <p style="color: var(--muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px; min-height: 45px;">${p.description || "설명 없이 쿨하게 모집 중..."}</p>
+                        <div style="display: flex; align-items: center; gap: 10px; color: #b9bbbe; font-size: 14px;">
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <span style="width: 8px; height: 8px; border-radius: 50%; background: #3ba55c;"></span>
+                                <span class="member-info">${p.current_count} / ${p.max_members}명</span>
+                            </div>
+                            <span style="color: rgba(255,255,255,0.1);">|</span>
+                            <span>${p.host}</span>
+                        </div>
+                    </a>
+                    <div style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
+                        <form action="/parties/${p.id}/join/" method="post">
+                            <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                            <button type="submit" class="btn" style="width: 100%; display: block; text-align: center; background: var(--brand); color: white; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; transition: 0.2s; border: none; cursor: pointer;">
+                                참여하기
+                            </button>
+                        </form>
+                    </div>
+                </div>`;
+                
+                // '새 파티 만들기' 버튼 바로 뒤에 추가
+                grid.firstElementChild.insertAdjacentHTML('afterend', newCardHtml);
+            }
+        }
+
+        // 2. 파티 삭제 처리
+        if (data.type === 'party_deleted') {
+            const card = document.getElementById(`party-card-${data.party_id}`);
+            if (card) card.remove();
+        }
+    };
+</script>
 {% endblock %}
