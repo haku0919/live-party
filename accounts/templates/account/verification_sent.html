@@ -10,7 +10,6 @@
     메일이 안 보이면 스팸함도 확인해보세요.
   </p>
 
-  <!-- 재전송 버튼 -->
   <form method="post" action="{% url 'account_email' %}">
     {% csrf_token %}
     <button type="submit"

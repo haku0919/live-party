@@ -1,3 +1,3 @@
 from django.db import models
 
-# Create your models here.
+# 현재 core 앱에서 별도 DB 모델을 사용하지 않습니다.

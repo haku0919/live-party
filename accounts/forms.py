@@ -1,18 +1,18 @@
-import datetime  # 날짜 계산용
+import datetime
 from django import forms
 from django.core.exceptions import ValidationError
 from allauth.account.forms import SignupForm
 from .models import User, Game
-from allauth.account.models import EmailAddress  # 이메일 중복 검사용
+from allauth.account.models import EmailAddress
 
+# 회원가입 입력값 검증과 사용자 생성 후 추가 필드 저장을 처리하는 폼
 class CustomSignupForm(SignupForm):
-    # 1. 입력 필드 정의
+    # allauth 기본 필드에 프로젝트 커스텀 필드를 추가합니다.
     username = forms.CharField(max_length=150, label="아이디(username)")
     nickname = forms.CharField(max_length=15, label="닉네임")
     phone = forms.CharField(max_length=15, label="전화번호")
     gender = forms.ChoiceField(choices=User.Gender.choices, label="성별")
     
-    # 숫자 입력칸 (화살표 제거 CSS 적용됨)
     birth_year = forms.IntegerField(
         label="출생년도",
         widget=forms.NumberInput(attrs={'placeholder': '예: 2002'})
@@ -31,11 +31,7 @@ class CustomSignupForm(SignupForm):
         widget=forms.CheckboxInput(attrs={'class': 'checkbox-input'})
     )
 
-    # -------------------------------------------
-    # 2. 유효성 검사 (Clean Methods)
-    # -------------------------------------------
-
-    # [생년 검사] 미래, 너무 과거, 14세 미만 차단
+    # 출생년도 유효성을 검증합니다.
     def clean_birth_year(self):
         birth_year = self.cleaned_data['birth_year']
         current_year = datetime.date.today().year
@@ -46,43 +42,38 @@ class CustomSignupForm(SignupForm):
         if birth_year < (current_year - 100):
             raise ValidationError("올바른 출생년도를 입력해주세요.")
 
-        # 만 14세 미만 가입 제한 (필요 없으면 이 부분 삭제하세요)
         if birth_year > (current_year - 14):
             raise ValidationError("만 14세 이상만 가입할 수 있습니다.")
 
         return birth_year
 
-    # [닉네임 중복 검사]
+    # 닉네임 중복 여부를 검증합니다.
     def clean_nickname(self):
         nickname = self.cleaned_data['nickname']
         if User.objects.filter(nickname=nickname).exists():
             raise ValidationError("이미 사용 중인 닉네임입니다.")
         return nickname
 
-    # [전화번호 중복 검사]
+    # 전화번호 중복 여부를 검증합니다.
     def clean_phone(self):
         phone = self.cleaned_data['phone']
         if User.objects.filter(phone=phone).exists():
             raise ValidationError("이미 가입된 전화번호입니다.")
         return phone
 
-    # -------------------------------------------
-    # 3. 저장 로직 (Save)
-    # -------------------------------------------
+    # 회원가입 사용자 생성 후 다중선택 게임 정보를 저장합니다.
     def save(self, request):
-        # 1. super().save()가 실행될 때, 아까 만든 'Adapter'가 작동해서
-        # nickname, phone, birth_year 등을 미리 다 넣어줍니다.
-        user = super().save(request) 
-
-        # 2. ManyToMany 필드(게임 목록)는 유저가 생성된 '후'에 넣어야 하므로 여기서 합니다.
+        # 실제 User 생성은 allauth + accounts.adapter.CustomAccountAdapter가 담당합니다.
+        user = super().save(request)
+        # ManyToMany는 객체 생성 후에만 set() 가능
         user.main_games.set(self.cleaned_data["main_games"])
         
         return user
 
+# 프로필 수정 시 허용 필드와 닉네임 중복 검증을 처리하는 폼
 class ProfileUpdateForm(forms.ModelForm):
     class Meta:
         model = User
-        # ✅ 수정할 필드만 쏙 뽑았습니다. (생년월일, 성별 제외)
         fields = ['nickname', 'mic_enabled', 'main_games']
         
         labels = {
@@ -93,11 +84,10 @@ class ProfileUpdateForm(forms.ModelForm):
         
         widgets = {
             'nickname': forms.TextInput(attrs={
-                'class': 'podo-input', # 기존 스타일 재사용
+                'class': 'podo-input',
                 'placeholder': '변경할 닉네임을 입력하세요',
                 'style': 'width: 100%; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white;'
             }),
-            # 마이크 토글은 템플릿에서 디자인할 거라 기본 체크박스로 둡니다.
             'mic_enabled': forms.CheckboxInput(attrs={
                 'id': 'mic_toggle', 
                 'class': 'mic-checkbox-input' 
@@ -105,16 +95,16 @@ class ProfileUpdateForm(forms.ModelForm):
             'main_games': forms.CheckboxSelectMultiple(),
         }
 
-    # 🛡️ 닉네임 중복 검사 (내 현재 닉네임은 제외)
+    # 본인 계정을 제외한 닉네임 중복 여부를 검증합니다.
     def clean_nickname(self):
         nickname = self.cleaned_data.get('nickname')
         
-        # 나(self.instance)를 제외하고, 같은 닉네임을 쓰는 사람이 있는지 확인
         if User.objects.filter(nickname=nickname).exclude(pk=self.instance.pk).exists():
             raise ValidationError("이미 사용 중인 닉네임입니다. 다른 걸 써주세요!")
             
         return nickname
 
+# 이메일 변경 시 신규 이메일 유효성을 검증하는 폼
 class EmailChangeForm(forms.Form):
     email = forms.EmailField(
         label="새로운 이메일",
@@ -127,7 +117,7 @@ class EmailChangeForm(forms.Form):
 
     def clean_email(self):
         email = self.cleaned_data['email']
-        # 이미 가입된 이메일인지 확인 (allauth 모델 사용)
+        # allauth의 EmailAddress 테이블 기준으로 전역 중복을 막습니다.
         if EmailAddress.objects.filter(email=email).exists():
             raise forms.ValidationError("이미 등록된 이메일입니다. 다른 이메일을 사용해주세요.")
         return email

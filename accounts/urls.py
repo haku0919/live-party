@@ -1,10 +1,12 @@
 from django.urls import path
-from .views import ProfileView  # 작성한 뷰 임포트
+from .views import ProfileView
 from django.views.generic import TemplateView
 from .views import ResendVerificationEmailView
 from .views import ProfileUpdateView
 from .views import EmailChangeView
 
+# accounts 앱의 HTTP 라우팅입니다.
+# allauth 기본 URL과는 websocket_project/urls.py에서 함께 include 됩니다.
 urlpatterns = [
     path("profile/", ProfileView.as_view(), name="profile"),
     path("profile/edit/", ProfileUpdateView.as_view(), name="profile_edit"),

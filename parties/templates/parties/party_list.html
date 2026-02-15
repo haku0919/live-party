@@ -1,6 +1,55 @@
 {% extends "parties/base.html" %}
 
 {% block content %}
+<style>
+    .blocked-modal-overlay {
+        position: fixed;
+        inset: 0;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 9999;
+    }
+
+    .blocked-modal {
+        width: 90%;
+        max-width: 420px;
+        background: #2f3136;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 14px;
+        padding: 28px;
+        text-align: center;
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+    }
+
+    .blocked-modal h3 {
+        margin: 0 0 10px;
+        color: #fff;
+        font-size: 22px;
+        font-weight: 800;
+    }
+
+    .blocked-modal p {
+        margin: 0 0 24px;
+        color: var(--muted);
+        line-height: 1.6;
+        font-size: 15px;
+    }
+
+    .blocked-modal button {
+        width: 100%;
+        border: none;
+        border-radius: 10px;
+        padding: 12px;
+        background: var(--brand);
+        color: #fff;
+        font-weight: 700;
+        cursor: pointer;
+    }
+</style>
+
 <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 20px;">
     
     <div style="margin-bottom: 30px;">
@@ -28,10 +77,10 @@
                         {% endif %}
                     </div>
 
-                    <h3 style="margin: 0 0 10px; font-size: 1.4rem; color: white;">{{ party.mode }}</h3>
+                    <h3 style="margin: 0 0 10px; font-size: 1.4rem; color: white;">모드 : {{ party.mode }}</h3>
                     
                     <p style="color: var(--muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px; min-height: 45px;">
-                        {{ party.description|truncatechars:60|default:"설명 없음" }}
+                        설명 : {{ party.description|truncatechars:60|default:"없음" }}
                     </p>
                     
                     <div style="display: flex; align-items: center; gap: 10px; color: #b9bbbe; font-size: 14px;">
@@ -63,7 +112,33 @@
     </div>
 </div>
 
+<div id="blocked-modal-overlay" class="blocked-modal-overlay">
+    <div class="blocked-modal">
+        <div style="font-size: 46px; margin-bottom: 12px;">🚫</div>
+        <h3>입장할 수 없는 파티입니다</h3>
+        <p>호스트에 의해 참여가 제한된 파티입니다.<br>다른 파티를 이용해 주세요.</p>
+        <button id="blocked-modal-confirm">확인</button>
+    </div>
+</div>
+
 <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const isBlocked = urlParams.get('blocked') === '1';
+
+    if (isBlocked) {
+        const blockedModal = document.getElementById('blocked-modal-overlay');
+        const blockedConfirm = document.getElementById('blocked-modal-confirm');
+        blockedModal.style.display = 'flex';
+
+        blockedConfirm.addEventListener('click', function () {
+            blockedModal.style.display = 'none';
+            urlParams.delete('blocked');
+            const newQuery = urlParams.toString();
+            const newUrl = `${window.location.pathname}${newQuery ? `?${newQuery}` : ''}`;
+            window.history.replaceState({}, '', newUrl);
+        });
+    }
+
     const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
     const lobbySocket = new WebSocket(protocol + window.location.host + '/ws/lobby/');
 

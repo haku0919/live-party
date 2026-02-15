@@ -1,16 +1,15 @@
 from django import forms
 from .models import Party
 
+# 파티 생성/수정 입력값과 위젯 스타일을 정의하는 폼
 class PartyForm(forms.ModelForm):
     class Meta:
         model = Party
-        # 모델의 필드명과 일치하게 구성
         fields = ['game', 'mode', 'description', 'max_members', 'mic_required']
         widgets = {
             'game': forms.Select(attrs={
                 'style': 'width:100%; padding:12px; background:rgba(255,255,255,0.05); color:white; border:1px solid rgba(255,255,255,0.1); border-radius:8px;'
             }),
-            # ✅ 이제 일반 텍스트 입력창으로 나옵니다.
             'mode': forms.TextInput(attrs={
                 'placeholder': '예: 랭크, 일반, 칼바람, 신속, 내전',
                 'style': 'width:100%; padding:12px; background:rgba(255,255,255,0.05); color:white; border:1px solid rgba(255,255,255,0.1); border-radius:8px;'

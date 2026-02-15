@@ -285,12 +285,12 @@
             <div style="color: #72767d; text-align: center; padding: 20px;">멤버 정보를 불러오는 중...</div>
             {% endfor %}
         </div>
-        <div style="margin-top: auto;">
+        <div id="party-action-container" style="margin-top: auto;">
             {% if party.host == user %}
-                <form action="{% url 'party_leave' party.id %}" method="post" onsubmit="return confirm('정말 파티를 해체하시겠습니까?\n이 작업은 되돌릴 수 없습니다.');">
+                <form action="{% url 'party_leave' party.id %}" method="post" onsubmit="return confirm('파티에서 나가시겠습니까?\n다음 참여자가 자동으로 방장이 됩니다.');">
                     {% csrf_token %}
                     <button type="submit" style="width: 100%; padding: 14px; background: #ed4245; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
-                        💥 파티 해체하기
+                        👋 방장 권한 넘기고 나가기
                     </button>
                 </form>
             {% elif is_member %}
@@ -389,10 +389,62 @@
     // 1. 기본 설정
     const partyId = "{{ party.id }}";
     const currentUserId = "{{ request.user.id }}";
-    const isHost = "{{ is_host|yesno:'true,false' }}" === "true";
+    let isHost = "{{ is_host|yesno:'true,false' }}" === "true";
+    let isMember = "{{ is_member|yesno:'true,false' }}" === "true";
+    const partyActionContainer = document.getElementById('party-action-container');
+
+    function renderPartyAction(isHostNow, isMemberNow) {
+        if (!partyActionContainer) return;
+
+        if (isHostNow) {
+            partyActionContainer.innerHTML = `
+                <form action="/parties/${partyId}/leave/" method="post" onsubmit="return confirm('파티에서 나가시겠습니까?\\n다음 참여자가 자동으로 방장이 됩니다.');">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="${csrftoken}">
+                    <button type="submit" style="width: 100%; padding: 14px; background: #ed4245; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
+                        👋 방장 권한 넘기고 나가기
+                    </button>
+                </form>
+            `;
+            return;
+        }
+
+        if (isMemberNow) {
+            partyActionContainer.innerHTML = `
+                <form action="/parties/${partyId}/leave/" method="post" onsubmit="return confirm('정말 파티에서 나가시겠습니까?');">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="${csrftoken}">
+                    <button type="submit" style="width: 100%; padding: 14px; background: #4f545c; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
+                        👋 파티 나가기
+                    </button>
+                </form>
+            `;
+            return;
+        }
+
+        partyActionContainer.innerHTML = `
+            <form action="/parties/${partyId}/join/" method="post">
+                <input type="hidden" name="csrfmiddlewaretoken" value="${csrftoken}">
+                <button type="submit" style="width: 100%; padding: 14px; background: #3ba55c; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
+                    🚀 파티 참여하기
+                </button>
+            </form>
+        `;
+    }
 
     const chatLog = document.querySelector('#chat-log');
     chatLog.scrollTop = chatLog.scrollHeight;
+
+    const params = new URLSearchParams(window.location.search);
+    const kickedUserName = params.get('kicked_user_name');
+    if (kickedUserName) {
+        const sysHTML = `<div class="system-message" style="color:#ed4245;">🚫 ${kickedUserName}님이 강제 추방되었습니다.</div>`;
+        chatLog.insertAdjacentHTML('beforeend', sysHTML);
+        chatLog.scrollTop = chatLog.scrollHeight;
+
+        params.delete('kicked_user_name');
+        const newQuery = params.toString();
+        const newUrl = `${window.location.pathname}${newQuery ? `?${newQuery}` : ''}`;
+        window.history.replaceState({}, '', newUrl);
+    }
 
     const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
     const chatSocket = new WebSocket(protocol + window.location.host + '/ws/chat/' + partyId + '/');
@@ -436,6 +488,11 @@
             const listContainer = document.getElementById('member-list-container');
             if (listContainer) {
                 listContainer.innerHTML = ''; 
+
+                const me = data.members.find(member => String(member.id) === String(currentUserId));
+                isMember = Boolean(me);
+                isHost = Boolean(me && me.is_host);
+                renderPartyAction(isHost, isMember);
 
                 data.members.forEach(member => {
                     const isMe = (String(member.id) === String(currentUserId));
@@ -490,6 +547,31 @@
     };
 
     chatSocket.onclose = function(e) { console.error('Socket closed'); };
+
+    document.addEventListener('submit', async function (e) {
+        const form = e.target;
+        if (!(form instanceof HTMLFormElement)) return;
+        if (!form.action.includes('/kick/')) return;
+
+        e.preventDefault();
+
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) {
+                console.error('강퇴 요청 실패:', response.status);
+            }
+        } catch (err) {
+            console.error('강퇴 요청 중 오류:', err);
+        }
+    });
 
     // 3. 채팅 입력
     const inputDom = document.querySelector('#chat-message-input');

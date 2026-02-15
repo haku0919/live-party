@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 
+# 파티 모집 정보와 상태를 관리하는 모델
 class Party(models.Model):
     class Status(models.TextChoices):
         OPEN = "OPEN", "모집중"
@@ -9,7 +10,6 @@ class Party(models.Model):
         CLOSED = "CLOSED", "종료"
 
     host = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="hosted_parties")
-    # Game 모델이 accounts 앱에 있다면 문자열로 참조해야 순환참조가 안 생깁니다.
     game = models.ForeignKey("accounts.Game", on_delete=models.PROTECT, related_name="parties")
     mic_required = models.BooleanField(default=False, verbose_name="마이크 필수")
     
@@ -31,12 +31,13 @@ class Party(models.Model):
     def __str__(self):
         return f"[{self.game.name}] {self.mode} - {self.host.nickname|default:self.host.username}"  
 
+
+# 파티 참여 이력과 활성 상태를 관리하는 모델
 class PartyMember(models.Model):
     party = models.ForeignKey(Party, on_delete=models.CASCADE, related_name="members")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="party_memberships")
     joined_at = models.DateTimeField(auto_now_add=True)
-    
-    # True=참여중, False=나감(기록용)
+
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -44,6 +45,8 @@ class PartyMember(models.Model):
             models.UniqueConstraint(fields=["party", "user"], name="unique_party_member")
         ]
 
+
+# 파티별 재입장 제한 대상을 관리하는 모델
 class BlackList(models.Model):
     party = models.ForeignKey(Party, on_delete=models.CASCADE, related_name="blacklist")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="blacklisted_in_parties")

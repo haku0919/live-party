@@ -3,6 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from .models import User, Game
 
 
+# 관리자에서 Game 마스터 데이터를 관리합니다.
 @admin.register(Game)
 class GameAdmin(admin.ModelAdmin):
     list_display = ("id", "code", "name")
@@ -10,6 +11,7 @@ class GameAdmin(admin.ModelAdmin):
     ordering = ("name",)
 
 
+# 기본 UserAdmin을 확장해 커스텀 User 필드를 노출합니다.
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (

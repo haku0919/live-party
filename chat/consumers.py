@@ -4,8 +4,20 @@ from channels.db import database_sync_to_async
 from .models import ChatMessage
 from parties.models import Party
 
+# 파티 단위 실시간 채팅 이벤트를 처리하는 WebSocket Consumer
+#
+# ===== 시그널/뷰 ↔ 컨슈머 연결 지도 =====
+# 클라이언트 send({message})                    -> receive
+# receive 내부 group_send(type="chat_message")  -> chat_message
+# parties/signals.py group_send(type="system_message")     -> system_message
+# parties/signals.py group_send(type="count_update")       -> count_update
+# parties/signals.py group_send(type="member_list_update") -> member_list_update
+# parties/signals.py group_send(type="party_killed")       -> party_killed
+# parties/views.py   group_send(type="user_kicked")        -> user_kicked
 class ChatConsumer(AsyncWebsocketConsumer):
+    # 채팅 그룹 연결 및 인증을 처리합니다.
     async def connect(self):
+        # routing.py의 (?P<party_id>\d+) 값을 URL kwargs에서 꺼냅니다.
         self.room_name = self.scope['url_route']['kwargs']['party_id']
         self.room_group_name = f'chat_{self.room_name}'
         self.user = self.scope["user"]
@@ -20,13 +32,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
         await self.accept()
 
+    # 채팅 그룹 연결 해제를 처리합니다.
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name
         )
 
+    # 채팅 메시지 수신 후 저장 및 브로드캐스트를 처리합니다.
     async def receive(self, text_data):
+        # text_data는 브라우저에서 보낸 JSON 문자열입니다.
         data = json.loads(text_data)
         message = data['message']
         nickname = getattr(self.user, 'nickname', self.user.username)
@@ -36,6 +51,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_send(
             self.room_group_name,
             {
+                # "type" 값과 같은 이름의 메서드(chat_message)가 자동 호출됩니다.
                 'type': 'chat_message',
                 'message': message,
                 'sender': nickname,
@@ -43,8 +59,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
             }
         )
 
+    # 메시지를 DB에 저장합니다.
     @database_sync_to_async
     def save_message(self, message):
+        # ORM은 동기 코드이므로, async 컨슈머에서는 database_sync_to_async로 감쌉니다.
         try:
             party = Party.objects.get(id=self.room_name)
             ChatMessage.objects.create(
@@ -53,22 +71,27 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 content=message
             )
         except Party.DoesNotExist:
+            # 방이 이미 삭제된 경우 저장을 건너뜁니다.
             pass
 
+    # 일반 채팅 메시지를 클라이언트에 전달합니다.
     async def chat_message(self, event):
         await self.send(text_data=json.dumps(event))
 
+    # 시스템 메시지를 클라이언트에 전달합니다.
     async def system_message(self, event):
         await self.send(text_data=json.dumps({
             'type': 'system_message',
             'message': event['message'],
         }))
 
+    # 파티 해체 이벤트를 클라이언트에 전달합니다.
     async def party_killed(self, event):
         await self.send(text_data=json.dumps({
             'type': 'party_killed'
         }))
 
+    # 강퇴 이벤트를 클라이언트에 전달합니다.
     async def user_kicked(self, event):
         await self.send(text_data=json.dumps({
             "type": "user_kicked",
@@ -76,12 +99,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "kicked_user_name": event["kicked_user_name"]
         }))
     
+    # 인원수 변경 이벤트를 클라이언트에 전달합니다.
     async def count_update(self, event):
         await self.send(text_data=json.dumps(event))
 
+    # 활성 멤버 목록 업데이트 이벤트를 클라이언트에 전달합니다.
     async def member_list_update(self, event):
-        # signals.py에서 보낸 멤버 리스트(event["members"])를
-        # 브라우저(HTML/JS)에게 그대로 전달합니다.
         await self.send(text_data=json.dumps({
             "type": "member_list_update",
             "members": event["members"]
