@@ -120,6 +120,9 @@ class PartyLeaveView(LoginRequiredMixin, VerifiedEmailRequiredMixin, View):
                 # 예외적으로 멤버 레코드가 없으면 안전하게 종료 처리
                 party.status = Party.Status.CLOSED
                 party.save()
+                party.members.all().delete()
+                party.messages.all().delete()
+                party.blacklist.all().delete()
         else:
             membership = PartyMember.objects.filter(party=party, user=request.user).first()
             if membership:
