@@ -7,7 +7,7 @@ from allauth.account.models import EmailAddress
 
 # 회원가입 입력값 검증과 사용자 생성 후 추가 필드 저장을 처리하는 폼
 class CustomSignupForm(SignupForm):
-    # allauth 기본 필드에 프로젝트 커스텀 필드를 추가합니다.
+    # allauth 기본 필드에 프로젝트 커스텀 필드를 추가함.
     username = forms.CharField(max_length=150, label="아이디(username)")
     nickname = forms.CharField(max_length=15, label="닉네임")
     phone = forms.CharField(max_length=15, label="전화번호")
@@ -31,7 +31,7 @@ class CustomSignupForm(SignupForm):
         widget=forms.CheckboxInput(attrs={'class': 'checkbox-input'})
     )
 
-    # 출생년도 유효성을 검증합니다.
+    # 출생년도 유효성을 검증함.
     def clean_birth_year(self):
         birth_year = self.cleaned_data['birth_year']
         current_year = datetime.date.today().year
@@ -47,23 +47,23 @@ class CustomSignupForm(SignupForm):
 
         return birth_year
 
-    # 닉네임 중복 여부를 검증합니다.
+    # 닉네임 중복 여부를 검증함.
     def clean_nickname(self):
         nickname = self.cleaned_data['nickname']
         if User.objects.filter(nickname=nickname).exists():
             raise ValidationError("이미 사용 중인 닉네임입니다.")
         return nickname
 
-    # 전화번호 중복 여부를 검증합니다.
+    # 전화번호 중복 여부를 검증함.
     def clean_phone(self):
         phone = self.cleaned_data['phone']
         if User.objects.filter(phone=phone).exists():
             raise ValidationError("이미 가입된 전화번호입니다.")
         return phone
 
-    # 회원가입 사용자 생성 후 다중선택 게임 정보를 저장합니다.
+    # 회원가입 사용자 생성 후 다중선택 게임 정보를 저장함.
     def save(self, request):
-        # 실제 User 생성은 allauth + accounts.adapter.CustomAccountAdapter가 담당합니다.
+        # 실제 User 생성은 allauth + accounts.adapter.CustomAccountAdapter가 담당함.
         user = super().save(request)
         # ManyToMany는 객체 생성 후에만 set() 가능
         user.main_games.set(self.cleaned_data["main_games"])
@@ -95,7 +95,7 @@ class ProfileUpdateForm(forms.ModelForm):
             'main_games': forms.CheckboxSelectMultiple(),
         }
 
-    # 본인 계정을 제외한 닉네임 중복 여부를 검증합니다.
+    # 본인 계정을 제외한 닉네임 중복 여부를 검증함.
     def clean_nickname(self):
         nickname = self.cleaned_data.get('nickname')
         
@@ -117,7 +117,7 @@ class EmailChangeForm(forms.Form):
 
     def clean_email(self):
         email = self.cleaned_data['email']
-        # allauth의 EmailAddress 테이블 기준으로 전역 중복을 막습니다.
+        # allauth의 EmailAddress 테이블 기준으로 전역 중복을 막음.
         if EmailAddress.objects.filter(email=email).exists():
             raise forms.ValidationError("이미 등록된 이메일입니다. 다른 이메일을 사용해주세요.")
         return email

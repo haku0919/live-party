@@ -4,7 +4,7 @@ from parties.models import Party
 
 # 파티 채팅 메시지(일반/시스템)를 저장하는 모델
 class ChatMessage(models.Model):
-    # related_name="messages" 덕분에 Party 인스턴스에서 party.messages로 역참조할 수 있습니다.
+    # related_name="messages" 덕분에 Party 인스턴스에서 party.messages로 역참조할 수 있음.
     party = models.ForeignKey(Party, on_delete=models.CASCADE, related_name="messages")
     # 시스템 메시지는 user가 없을 수 있어 null/blank 허용
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="chat_messages", null=True, blank=True)
@@ -16,7 +16,7 @@ class ChatMessage(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        # 파티별 시간순 조회가 잦아 복합 인덱스를 둡니다.
+        # 파티별 시간순 조회가 잦아 복합 인덱스를 둠.
         indexes = [
             models.Index(fields=['party', 'created_at']),
         ]

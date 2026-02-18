@@ -11,18 +11,18 @@ from .forms import PartyForm
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
-# 모집 중/마감 파티 목록을 보여주는 뷰입니다.
+# 모집 중/마감 파티 목록을 보여주는 뷰임.
 class PartyListView(LoginRequiredMixin, ListView):
     model = Party
     template_name = 'parties/party_list.html'
     context_object_name = 'parties'
     
     def get_queryset(self):
-        # 종료된 방은 목록에서 숨깁니다.
+        # 종료된 방은 목록에서 숨김.
         return Party.objects.exclude(status=Party.Status.CLOSED).order_by('-created_at')
 
-    # 파티 생성 요청을 처리하는 뷰입니다.
-    # 생성 성공 시 방장을 첫 활성 멤버로 자동 등록합니다.
+    # 파티 생성 요청을 처리하는 뷰임.
+    # 생성 성공 시 방장을 첫 활성 멤버로 자동 등록함.
 class PartyCreateView(LoginRequiredMixin, VerifiedEmailRequiredMixin, CreateView):
     model = Party
     form_class = PartyForm
@@ -45,8 +45,8 @@ class PartyCreateView(LoginRequiredMixin, VerifiedEmailRequiredMixin, CreateView
 
         return redirect('party_detail', pk=self.object.pk)
 
-# 파티 상세 화면을 렌더링하는 뷰입니다.
-# URL 직접 접근 시 비활성 멤버를 재활성화(재입장)하는 정책을 포함합니다.
+# 파티 상세 화면을 렌더링하는 뷰임.
+# URL 직접 접근 시 비활성 멤버를 재활성화(재입장)하는 정책을 포함함.
 class PartyDetailView(LoginRequiredMixin, VerifiedEmailRequiredMixin, NotInBlackListMixin, DetailView):
     model = Party
     template_name = 'parties/party_detail.html'
@@ -71,7 +71,7 @@ class PartyDetailView(LoginRequiredMixin, VerifiedEmailRequiredMixin, NotInBlack
         user = self.request.user
         party = self.object
 
-        # WebSocket 연결 전 첫 렌더에 필요한 멤버 목록/권한 상태를 제공합니다.
+        # WebSocket 연결 전 첫 렌더에 필요한 멤버 목록/권한 상태를 제공함.
         context['active_members'] = party.members.filter(is_active=True).select_related('user')
 
         if user.is_authenticated:
@@ -84,7 +84,7 @@ class PartyDetailView(LoginRequiredMixin, VerifiedEmailRequiredMixin, NotInBlack
             context['is_host'] = False
         return context
 
-# 파티 참여/재참여 요청을 처리하는 뷰입니다.
+# 파티 참여/재참여 요청을 처리하는 뷰임.
 class PartyJoinView(LoginRequiredMixin, VerifiedEmailRequiredMixin, NotInBlackListMixin, View):
     def post(self, request, pk):
         party = get_object_or_404(Party, pk=pk)
@@ -93,7 +93,7 @@ class PartyJoinView(LoginRequiredMixin, VerifiedEmailRequiredMixin, NotInBlackLi
             return redirect('party_list')
 
         # 기존 레코드가 있으면 is_active를 true로 복구하고,
-        # 없으면 새 멤버 레코드를 생성합니다.
+        # 없으면 새 멤버 레코드를 생성함.
         if party.current_member_count < party.max_members:
             PartyMember.objects.update_or_create(
                 party=party,
@@ -103,8 +103,8 @@ class PartyJoinView(LoginRequiredMixin, VerifiedEmailRequiredMixin, NotInBlackLi
         
         return redirect('party_detail', pk=pk)
 
-# 파티 나가기 요청을 처리하는 뷰입니다.
-# 방장이 나가면 시그널에서 새 방장 위임/종료 여부를 처리합니다.
+# 파티 나가기 요청을 처리하는 뷰임.
+# 방장이 나가면 시그널에서 새 방장 위임/종료 여부를 처리함.
 class PartyLeaveView(LoginRequiredMixin, VerifiedEmailRequiredMixin, View):
     def post(self, request, pk):
         party = get_object_or_404(Party, pk=pk)
@@ -131,7 +131,7 @@ class PartyLeaveView(LoginRequiredMixin, VerifiedEmailRequiredMixin, View):
 
         return redirect('party_list')
 
-# 방장의 강퇴 요청을 처리하는 뷰입니다.
+# 방장의 강퇴 요청을 처리하는 뷰임.
 class KickMemberView(LoginRequiredMixin, VerifiedEmailRequiredMixin, View):
     def post(self, request, party_id, user_id):
         party = get_object_or_404(Party, pk=party_id)
@@ -141,7 +141,7 @@ class KickMemberView(LoginRequiredMixin, VerifiedEmailRequiredMixin, View):
 
         partyMember = get_object_or_404(PartyMember, party=party, user_id=user_id)
         kicked_user_name = partyMember.user.nickname or partyMember.user.username
-        # _kicked 플래그로 시그널에서 "일반 퇴장 메시지"를 생략하게 만듭니다.
+        # _kicked 플래그로 시그널에서 "일반 퇴장 메시지"를 생략하게 만듦.
         partyMember.is_active = False
         partyMember._kicked = True
         partyMember.save()

@@ -18,13 +18,6 @@
   
 </div>
 
-<br>
-
-## 📸 Preview
-![Main Screen](https://via.placeholder.com/800x400?text=Place+Your+Screenshot+Here)
-
-<br>
-
 ## 📝 Introduction
 **Live Party**는 게이머들이 원하는 조건의 팀원을 **실시간(Real-time)**으로 찾고, 즉시 대화를 나누며 게임을 시작할 수 있도록 돕는 웹 애플리케이션입니다. 
 

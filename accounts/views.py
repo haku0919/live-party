@@ -18,7 +18,7 @@ class ProfileView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # PartyMember 역참조를 통해 최근 참여 파티 히스토리를 노출합니다.
+        # PartyMember 역참조를 통해 최근 참여 파티 히스토리를 노출함.
         context['recent_matches'] = PartyMember.objects.filter(user=self.request.user) \
                                     .select_related('party__game') \
                                     .order_by('-joined_at')[:5]
@@ -27,7 +27,7 @@ class ProfileView(LoginRequiredMixin, TemplateView):
 # 인증 메일 재발송을 처리하는 뷰
 class ResendVerificationEmailView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
-        # allauth EmailAddress에서 "주(primary) 이메일" 레코드를 찾아 재전송합니다.
+        # allauth EmailAddress에서 "주(primary) 이메일" 레코드를 찾아 재전송함.
         email_obj = EmailAddress.objects.filter(user=request.user, primary=True).first()
         
         if email_obj and not email_obj.verified:
@@ -46,7 +46,7 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
         return self.request.user
 
     def form_valid(self, form):
-        # has_changed()를 쓰면 불필요한 UPDATE 쿼리를 줄일 수 있습니다.
+        # has_changed()를 쓰면 불필요한 UPDATE 쿼리를 줄일 수 있음.
         if not form.has_changed():
             messages.info(self.request, "변경된 내용이 없어 저장하지 않았습니다. 🤔")
             return redirect(self.success_url)
@@ -64,7 +64,7 @@ class EmailChangeView(LoginRequiredMixin, FormView):
         new_email = form.cleaned_data['email']
 
         try:
-            # 기존 EmailAddress를 비우고 새 이메일을 단일 primary로 교체합니다.
+            # 기존 EmailAddress를 비우고 새 이메일을 단일 primary로 교체함.
             EmailAddress.objects.filter(user=user).delete()
 
             new_email_obj = EmailAddress.objects.create(
@@ -74,11 +74,11 @@ class EmailChangeView(LoginRequiredMixin, FormView):
                 verified=False
             )
 
-            # User.email도 같이 맞춰야 템플릿/관리자 화면에서 값이 일관됩니다.
+            # User.email도 같이 맞춰야 템플릿/관리자 화면에서 값이 일관됨.
             user.email = new_email
             user.save()
 
-            # allauth의 확인 토큰을 직접 발급해 인증 메일을 보냅니다.
+            # allauth의 확인 토큰을 직접 발급해 인증 메일을 보냄.
             confirmation = EmailConfirmation.create(new_email_obj)
             confirmation.send(self.request, signup=False)
 

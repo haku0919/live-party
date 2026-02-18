@@ -5,10 +5,10 @@ from allauth.account.models import EmailAddress
 
 # 이메일 인증 완료 사용자만 접근을 허용하는 믹스인
 class VerifiedEmailRequiredMixin(AccessMixin):
-    # 미인증 사용자를 메인으로 리다이렉트합니다.
+    # 미인증 사용자를 메인으로 리다이렉트함.
     def dispatch(self, request, *args, **kwargs):
         # LoginRequiredMixin보다 앞뒤 MRO에 따라 이 코드가 먼저 실행될 수 있어,
-        # 비로그인 처리도 방어적으로 포함합니다.
+        # 비로그인 처리도 방어적으로 포함함.
         if not request.user.is_authenticated:
             return self.handle_no_permission()
 
