@@ -4,16 +4,7 @@ from channels.db import database_sync_to_async
 from .models import ChatMessage
 from parties.models import Party
 
-# 파티 단위 실시간 채팅 이벤트를 처리하는 WebSocket Consumer
-#
-# ===== 시그널/뷰 ↔ 컨슈머 연결 지도 =====
-# 클라이언트 send({message})                    -> receive
-# receive 내부 group_send(type="chat_message")  -> chat_message
-# parties/signals.py group_send(type="system_message")     -> system_message
-# parties/signals.py group_send(type="count_update")       -> count_update
-# parties/signals.py group_send(type="member_list_update") -> member_list_update
-# parties/signals.py group_send(type="party_killed")       -> party_killed
-# parties/views.py   group_send(type="user_kicked")        -> user_kicked
+
 class ChatConsumer(AsyncWebsocketConsumer):
     # 채팅 그룹 연결 및 인증을 처리함.
     async def connect(self):

@@ -4,21 +4,6 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from .models import Party, PartyMember
 
-# ===== 시그널 ↔ 컨슈머 연결 지도 =====
-# group_send(..., {"type": "count_update"})        -> chat/consumers.py::ChatConsumer.count_update
-# group_send(..., {"type": "member_list_update"})  -> chat/consumers.py::ChatConsumer.member_list_update
-# group_send(..., {"type": "system_message"})      -> chat/consumers.py::ChatConsumer.system_message
-# group_send("lobby", {"type": "party_update"})   -> parties/consumers.py::LobbyConsumer.party_update
-# group_send("lobby", {"type": "party_deleted"})  -> parties/consumers.py::LobbyConsumer.party_deleted
-# group_send(..., {"type": "party_killed"})        -> chat/consumers.py::ChatConsumer.party_killed
-
-# PartyMember 저장 직후 실행되어, 파티의 실시간 상태를 동기화하는 시그널 핸들러임.
-#
-# 이 함수가 하는 일:
-# 1) 방장 이탈 시 새 방장 자동 위임
-# 2) 현재 인원수/모집 상태 업데이트
-# 3) 채팅방에 count_update, member_list_update 이벤트 전송
-# 4) 입장/퇴장/재입장 시스템 메시지 전송
 @receiver(post_save, sender=PartyMember)
 def handle_member_change(sender, instance, created, **kwargs):
     # instance는 "방금 저장된 PartyMember 한 건"임.

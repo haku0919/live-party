@@ -1,12 +1,6 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 
-# 로비 페이지에서 사용하는 WebSocket Consumer임.
-# 서버가 보낸 이벤트를 프론트가 그릴 수 있는 JSON 형태로 중계함.
-#
-# 이벤트 발신자(주로): parties/signals.py::broadcast_party_update
-# - type="party_update"  -> 이 파일의 party_update 메서드로 라우팅
-# - type="party_deleted" -> 이 파일의 party_deleted 메서드로 라우팅
 class LobbyConsumer(AsyncWebsocketConsumer):
     # 소켓 연결 시 "lobby" 그룹에 현재 클라이언트 채널을 등록함.
     async def connect(self):
