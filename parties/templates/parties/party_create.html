@@ -1,78 +1,123 @@
 {% extends "parties/base.html" %}
 
+{% block title %}파티 만들기{% endblock %}
+
 {% block content %}
 <style>
-    /* 실제 체크박스는 숨김 */
-    .mic-checkbox-input { display: none; }
+  .create-wrap { max-width: 720px; margin: 10px auto 0; }
+  .create-panel { padding: 28px; }
+  .create-head h1 { margin: 0 0 8px; font-size: 2rem; }
+  .create-head p { margin: 0; color: var(--muted); }
+  .create-grid {
+    margin-top: 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .create-grid .full { grid-column: 1 / -1; }
+  .field label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.88rem;
+    color: var(--muted);
+  }
+  .error-msg {
+    margin-top: 7px;
+    color: var(--warn);
+    font-size: 0.82rem;
+  }
+  .toggle-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    padding: 12px;
+    cursor: pointer;
+  }
+  .toggle-box input { accent-color: var(--brand-strong); width: 18px; height: 18px; }
+  .helper {
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 0.82rem;
+  }
+  .actions {
+    margin-top: 24px;
+    display: flex;
+    gap: 10px;
+  }
+  .actions .btn { flex: 1; text-align: center; }
 
-    /* 기본 토글 박스 스타일 */
-    .mic-toggle-box {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 15px 20px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 2px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        color: #b9bbbe;
-    }
-
-    .mic-toggle-box:hover {
-        background: rgba(255, 255, 255, 0.08);
-        border-color: rgba(255, 255, 255, 0.2);
-    }
-
-    /* ✅ 체크되었을 때 반응: 인접 형제 선택자(+) 활용 */
-    .mic-checkbox-input:checked + .mic-toggle-box {
-        background: rgba(88, 101, 242, 0.2) !important;
-        border-color: #5865F2 !important;
-        color: white !important;
-        box-shadow: 0 0 15px rgba(88, 101, 242, 0.2);
-    }
-
-    .mic-icon { font-size: 20px; filter: grayscale(1); transition: 0.2s; }
-    .mic-checkbox-input:checked + .mic-toggle-box .mic-icon { filter: grayscale(0); }
+  @media (max-width: 760px) {
+    .create-grid { grid-template-columns: 1fr; }
+  }
 </style>
 
-<section class="hero" style="max-width: 550px; margin: 50px auto;">
-    <div class="panel" style="background: #2f3136; border-radius: 16px; padding: 40px; border: 1px solid rgba(255,255,255,0.08);">
-        <h1 style="font-size: 28px; margin-bottom: 8px; text-align: center; color: white;">새 파티 생성</h1>
-        <p style="color: #b9bbbe; text-align: center; margin-bottom: 35px;">팀원들에게 보여줄 정보를 입력해주세요.</p>
-        
-        <form method="post">
-            {% csrf_token %}
-            
-            {% for field in form %}
-            <div style="margin-bottom: 25px;">
-                <label style="display: block; margin-bottom: 10px; font-weight: 600; color: #eee; font-size: 15px;">
-                    {{ field.label }}
-                </label>
-
-                {% if field.name == 'mic_required' %}
-                    <input type="checkbox" name="{{ field.name }}" id="{{ field.id_for_label }}" class="mic-checkbox-input">
-                    <label for="{{ field.id_for_label }}" class="mic-toggle-box">
-                        <span class="mic-icon">🎙️</span>
-                        <span style="font-size: 14px; font-weight: 500;">마이크 사용이 필수인 파티인가요?</span>
-                    </label>
-                {% else %}
-                    {{ field }}
-                {% endif %}
-                
-                {% if field.errors %}
-                    {% for error in field.errors %}
-                    <div style="color: #ed4245; font-size: 12px; margin-top: 8px;">⚠️ {{ error }}</div>
-                    {% endfor %}
-                {% endif %}
-            </div>
-            {% endfor %}
-            
-            <div style="display: flex; gap: 12px; margin-top: 35px;">
-                <button type="submit" class="btn btn-primary" style="flex: 2; padding: 15px; font-weight: bold; font-size: 16px; background: #5865F2; color: white; border: none; border-radius: 8px; cursor: pointer;">파티 만들기</button>
-                <a href="{% url 'party_list' %}" style="flex: 1; text-align: center; padding: 15px; background: #4f545c; color: white; text-decoration: none; border-radius: 8px; font-size: 16px;">취소</a>
-            </div>
-        </form>
+<section class="create-wrap">
+  <div class="panel create-panel">
+    <div class="create-head">
+      <h1>새 파티 생성</h1>
+      <p>게임/모드/인원만 입력하면 바로 실시간 모집이 시작됩니다.</p>
     </div>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        {% for err in form.non_field_errors %}
+          <p class="error-msg">{{ err }}</p>
+        {% endfor %}
+      {% endif %}
+
+      <div class="create-grid">
+        <div class="field">
+          <label for="{{ form.game.id_for_label }}">{{ form.game.label }}</label>
+          {{ form.game }}
+          {% for error in form.game.errors %}<p class="error-msg">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div class="field">
+          <label for="{{ form.mode.id_for_label }}">{{ form.mode.label }}</label>
+          {{ form.mode }}
+          {% for error in form.mode.errors %}<p class="error-msg">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div class="field full">
+          <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+          {{ form.description }}
+          <p class="helper">팀원 모집 기준, 디스코드 사용 여부 등을 쓰면 참여율이 높아집니다.</p>
+          {% for error in form.description.errors %}<p class="error-msg">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div class="field">
+          <label for="{{ form.max_members.id_for_label }}">{{ form.max_members.label }}</label>
+          {{ form.max_members }}
+          {% for error in form.max_members.errors %}<p class="error-msg">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div class="field">
+          <label>{{ form.mic_required.label }}</label>
+          <label class="toggle-box" for="{{ form.mic_required.id_for_label }}">
+            {{ form.mic_required }}
+            <span>🎙️ 음성 참여가 가능한 유저만 모집</span>
+          </label>
+          {% for error in form.mic_required.errors %}<p class="error-msg">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div class="field full">
+          <label for="{{ form.join_policy.id_for_label }}">{{ form.join_policy.label }}</label>
+          {{ form.join_policy }}
+          <p class="helper">즉시 입장은 바로 합류, 승인제는 방장이 신청을 수락해야 합류됩니다.</p>
+          {% for error in form.join_policy.errors %}<p class="error-msg">{{ error }}</p>{% endfor %}
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn btn-solid">파티 만들기</button>
+        <a href="{% url 'party_list' %}" class="btn btn-ghost">취소</a>
+      </div>
+    </form>
+  </div>
 </section>
 {% endblock %}

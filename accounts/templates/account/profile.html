@@ -5,180 +5,314 @@
 
 {% block content %}
 <style>
-    /* 프로필 페이지 전용 스타일 (기존 디자인 유지) */
+  .profile-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .profile-header {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 18px;
+    align-items: center;
+    padding: 18px;
+  }
+
+  .avatar-circle {
+    width: 88px;
+    height: 88px;
+    border-radius: 28px;
+    background: radial-gradient(circle at 28% 22%, rgba(255, 255, 255, 0.2), transparent 55%),
+      linear-gradient(140deg, rgba(47, 199, 179, 0.8), rgba(31, 139, 216, 0.85));
+    color: #f6fbff;
+    font-size: 2.1rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+  }
+
+  .profile-name {
+    font-size: 2rem;
+    line-height: 1.1;
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
+  }
+
+  .profile-username {
+    color: var(--muted);
+    font-size: 1rem;
+  }
+
+  .profile-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    width: min(360px, 100%);
+  }
+
+  .profile-actions-row {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .profile-main-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .profile-actions-row .btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .profile-card {
+    padding: 16px 18px;
+  }
+
+  .card-title {
+    margin: 0;
+    font-size: 1.12rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .kv-list {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .kv-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .kv-label {
+    color: var(--muted);
+    font-size: 0.88rem;
+  }
+
+  .kv-value {
+    font-weight: 600;
+  }
+
+  .game-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .game-tag {
+    border-radius: 999px;
+    padding: 6px 12px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.04);
+    font-size: 0.83rem;
+  }
+
+  .empty-copy {
+    margin-top: 14px;
+    color: var(--muted);
+    font-size: 0.92rem;
+  }
+
+  .history-panel {
+    padding: 16px 18px;
+  }
+
+  .history-list {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .match-row {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .match-main {
+    min-width: 0;
+  }
+
+  .match-game {
+    display: inline-flex;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .match-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .match-time {
+    margin-top: 5px;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  .match-side {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .state-on {
+    color: #8ef7c2;
+    font-size: 0.76rem;
+    font-weight: 700;
+  }
+
+  .state-off {
+    color: var(--muted);
+    font-size: 0.76rem;
+    font-weight: 700;
+  }
+
+  @media (max-width: 980px) {
     .profile-header {
-        display: flex;
-        align-items: center;
-        gap: 24px;
-        margin-bottom: 24px;
-    }
-    
-    .avatar-circle {
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, var(--brand), var(--brand2));
-        color: white;
-        font-size: 32px;
-        font-weight: 800;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 8px 20px rgba(88,101,242,.3);
-        border: 2px solid rgba(255,255,255,0.1);
+      grid-template-columns: 1fr;
+      justify-items: center;
+      text-align: center;
     }
 
-    .profile-info { flex: 1; }
-    
-    .profile-name {
-        font-size: 26px;
-        font-weight: 800;
-        margin: 0 0 6px;
-        color: var(--text);
-    }
-    
-    .profile-username {
-        color: var(--muted);
-        font-size: 15px;
-        font-weight: 400;
+    .profile-actions {
+      align-items: center;
+      width: 100%;
     }
 
-    /* 게임 태그 디자인 */
-    .game-tags {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 10px;
-    }
-    
-    .game-tag {
-        background: rgba(255,255,255,0.06);
-        border: 1px solid var(--border);
-        padding: 6px 12px;
-        border-radius: 8px;
-        font-size: 14px;
-        color: var(--text);
-        transition: 0.2s;
-    }
-    
-    .game-tag:hover {
-        background: rgba(255,255,255,0.1);
-        border-color: rgba(255,255,255,0.2);
+    .profile-actions-row {
+      justify-content: center;
+      grid-template-columns: 1fr;
     }
 
-    /* 마이크 상태 뱃지 */
-    .mic-badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 700;
-        margin-left: 8px;
-        vertical-align: middle;
+    .match-row {
+      flex-direction: column;
+      align-items: flex-start;
     }
-    .mic-on { background: rgba(46, 204, 113, 0.15); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.3); }
-    .mic-off { background: rgba(255, 92, 92, 0.15); color: #ff5c5c; border: 1px solid rgba(255, 92, 92, 0.3); }
 
-    @media (max-width: 600px) {
-        .profile-header { flex-direction: column; text-align: center; }
-        .game-tags { justify-content: center; }
+    .match-side {
+      width: 100%;
+      justify-content: space-between;
     }
+  }
 </style>
 
 <section class="hero">
-    
+  <div class="profile-shell">
     <div class="panel profile-header">
-        <div class="avatar-circle">
-            {{ user.nickname|slice:":1" }}
-        </div>
+      <div class="avatar-circle">
+        {{ user.nickname|default:user.username|slice:":1"|upper }}
+      </div>
 
-        <div class="profile-info">
-            <h1 class="profile-name">
-                {{ user.nickname }}
-                </h1>
-            <span class="profile-username">@{{ user.username }}</span>
-        </div>
+      <div class="profile-info">
+        <h1 class="profile-name">{{ user.nickname|default:user.username }}</h1>
+        <span class="profile-username">@{{ user.username }}</span>
+      </div>
 
-        <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
-            <a href="{% url 'profile_edit' %}" class="btn btn-primary" style="width: 100%; text-align: center;">
-                ✏️ 프로필 수정
-            </a>
-            <div style="display: flex; gap: 8px;">
-                <a href="{% url 'account_email' %}" class="btn" style="font-size: 13px; padding: 8px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
-                    📧 이메일 수정
-                </a>
-                <a href="{% url 'account_change_password' %}" class="btn" style="font-size: 13px; padding: 8px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
-                    🔒 비밀번호 수정
-                </a>
-            </div>
+      <div class="profile-actions">
+        <a href="{% url 'profile_edit' %}" class="btn btn-solid profile-main-btn">
+          프로필 수정
+        </a>
+        <div class="profile-actions-row">
+          <a href="{% url 'account_email' %}" class="btn btn-ghost" style="font-size:.82rem;padding:8px 12px;">
+            이메일 수정
+          </a>
+          <a href="{% url 'account_change_password' %}" class="btn btn-ghost" style="font-size:.82rem;padding:8px 12px;">
+            비밀번호 수정
+          </a>
         </div>
+      </div>
     </div>
 
     <div class="grid">
-        <div class="card">
-            <p class="card-title">👤 플레이어 정보</p>
-            <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 12px;">
-                <div style="display: flex; justify-content: space-between;">
-                    <span style="color:var(--muted)">성별</span>
-                    <span>{{ user.get_gender_display }}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span style="color:var(--muted)">가입일</span>
-                    <span>{{ user.date_joined|date:"Y.m.d" }}</span>
-                </div>
-            </div>
+      <div class="card profile-card">
+        <p class="card-title">플레이어 정보</p>
+        <div class="kv-list">
+          <div class="kv-row">
+            <span class="kv-label">성별</span>
+            <span class="kv-value">{{ user.get_gender_display }}</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-label">가입일</span>
+            <span class="kv-value">{{ user.date_joined|date:"Y.m.d" }}</span>
+          </div>
         </div>
+      </div>
 
-        <div class="card">
-            <p class="card-title">🎮 주 플레이 게임</p>
-            <div class="game-tags">
-                {% for game in user.main_games.all %}
-                    <span class="game-tag">{{ game.name }}</span>
-                {% empty %}
-                    <span style="color:var(--muted); font-size:14px;">등록된 게임이 없습니다.</span>
-                {% endfor %}
-            </div>
+      <div class="card profile-card">
+        <p class="card-title">주 플레이 게임</p>
+        <div class="game-tags">
+          {% for game in user.main_games.all %}
+            <span class="game-tag">{{ game.name }}</span>
+          {% empty %}
+            <p class="empty-copy">등록된 게임이 없습니다.</p>
+          {% endfor %}
         </div>
+      </div>
     </div>
 
-    <div class="panel">
-        <p class="card-title" style="margin-bottom: 15px;">매칭 히스토리 (최근 5개)</p>
-        
-        <div style="display: flex; flex-direction: column;">
-            {% for match in recent_matches %}
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border);">
-                    
-                    <div>
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                            <span class="game-tag" style="padding: 2px 8px; font-size: 11px; margin: 0;">게임 : {{ match.party.game.name }} | 모드 : {{ match.party.mode }}</span>
-                            <strong style="color: var(--text);">{{ match.party.title }}</strong>
-                        </div>
-                        <small style="color: var(--muted); font-size: 13px;">{{ match.joined_at|date:"Y.m.d H:i" }} 참여</small>
-                    </div>
+    <div class="panel history-panel">
+      <p class="card-title">매칭 히스토리 (최근 5개)</p>
+      <div class="history-list">
+        {% for match in recent_matches %}
+          <div class="match-row">
+            <div class="match-main">
+              <span class="match-game">게임: {{ match.party.game.name }} | 모드: {{ match.party.mode }}</span>
+              <p class="match-title">{{ match.party.title|default:match.party.mode }}</p>
+              <p class="match-time">{{ match.joined_at|date:"Y.m.d H:i" }} 참여</p>
+            </div>
 
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        {% if match.party.status == "CLOSED" %}
-                            <span style="color: var(--muted); font-size: 12px; font-weight: bold;">종료됨</span>
-                        {% else %}
-                            <span style="color: #4cd137; font-size: 12px; font-weight: bold;">진행 중</span>
-                            
-                            <a href="{% url 'party_detail' match.party.id %}" 
-                               class="btn" 
-                               style="padding: 4px 12px; font-size: 12px; min-width: auto; height: auto;">
-                               입장 🚀
-                            </a>
-                        {% endif %}
-                    </div>
-                </div>
-            {% empty %}
-                <div style="text-align: center; padding: 30px 0;">
-                    <p class="card-text" style="margin-bottom: 15px; color: var(--muted);">아직 참여한 파티 기록이 없어요.</p>
-                    <a href="{% url 'party_list' %}" class="btn">파티 찾으러 가기</a>
-                </div>
-            {% endfor %}
-        </div>
+            <div class="match-side">
+              {% if match.party.status == "CLOSED" %}
+                <span class="state-off">종료됨</span>
+              {% else %}
+                <span class="state-on">진행 중</span>
+                <a href="{% url 'party_detail' match.party.id %}" class="btn btn-ghost" style="font-size:.75rem;padding:6px 10px;">
+                  입장
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        {% empty %}
+          <div style="text-align:center; padding:26px 0 8px;">
+            <p class="empty-copy" style="margin:0 0 14px;">아직 참여한 파티 기록이 없습니다.</p>
+            <a href="{% url 'party_list' %}" class="btn btn-solid">파티 찾으러 가기</a>
+          </div>
+        {% endfor %}
+      </div>
     </div>
-
+  </div>
 </section>
 {% endblock %}

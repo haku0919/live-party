@@ -1,142 +1,119 @@
 {% extends "core/base.html" %}
 
-{% block title %}Party Match{% endblock %}
+{% block title %}Live Party{% endblock %}
 
 {% block content %}
 <style>
-  /* 팝업 스타일 (메인 페이지 전용) */
+  .hero {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  .hero-main,
+  .hero-side { padding: 24px; }
+
+  .hero-main h1 {
+    margin: 0;
+    font-size: clamp(2rem, 5vw, 3rem);
+    line-height: 1.1;
+  }
+
+  .hero-main p,
+  .hero-side p { color: var(--muted); line-height: 1.6; }
+
+  .cta-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .feature-card { padding: 16px; }
+  .feature-card h3 { margin: 0 0 8px; }
+  .feature-card p { margin: 0; color: var(--muted); font-size: 0.92rem; }
+
   .popup-overlay {
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(5px);
-      z-index: 9999;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      animation: fadeIn 0.3s ease-out;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(6px);
+    z-index: 110;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
-  
+
   .popup-card {
-      background: rgba(30, 33, 40, 0.95);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 16px;
-      padding: 30px;
-      width: 90%;
-      max-width: 400px;
-      text-align: center;
-      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
-      position: relative;
-      animation: slideUp 0.3s ease-out;
+    width: min(92%, 380px);
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: var(--surface-strong);
+    padding: 24px;
+    text-align: center;
   }
 
-  .popup-icon { font-size: 48px; margin-bottom: 16px; }
-  .popup-title { font-size: 22px; margin: 0 0 10px; color: white; font-weight: 800; }
-  .popup-desc { color: rgba(255, 255, 255, 0.7); margin-bottom: 24px; line-height: 1.5; font-size: 15px; }
-  
-  .btn-popup {
-      display: block;
-      width: 100%;
-      padding: 12px;
-      border-radius: 10px;
-      font-weight: 700;
-      text-decoration: none;
-      transition: 0.2s;
-      cursor: pointer;
+  @media (max-width: 920px) {
+    .hero { grid-template-columns: 1fr; }
+    .feature-grid { grid-template-columns: 1fr; }
   }
-  
-  .btn-send {
-      background: linear-gradient(135deg, var(--brand), var(--brand2));
-      color: white;
-      border: 1px solid rgba(255,255,255,0.1);
-      margin-bottom: 10px;
-  }
-  .btn-send:hover { filter: brightness(1.1); transform: translateY(-1px); }
-  
-  .btn-close {
-      background: rgba(255, 255, 255, 0.05);
-      color: rgba(255, 255, 255, 0.6);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      font-size: 14px;
-  }
-  .btn-close:hover { background: rgba(255, 255, 255, 0.1); color: white; }
-
-  /* 닫기(X) 버튼 */
-  .close-icon {
-      position: absolute;
-      top: 15px; right: 15px;
-      color: rgba(255, 255, 255, 0.4);
-      cursor: pointer;
-      font-size: 20px;
-  }
-  .close-icon:hover { color: white; }
-
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 </style>
 
-{% if user.is_authenticated and not user.emailaddress_set.first.verified %}
+{% if user.is_authenticated and user.emailaddress_set.first and not user.emailaddress_set.first.verified %}
 <div id="email-popup" class="popup-overlay">
-    <div class="popup-card">
-        <div class="close-icon" onclick="closePopup()">✕</div>
-        
-        <div class="popup-icon">📧</div>
-        <h2 class="popup-title">이메일 인증이 필요해요</h2>
-        <p class="popup-desc">
-            원활한 파티 매칭과 채팅을 위해<br>
-            이메일 인증을 완료해주세요.
-        </p>
-        
-        <a href="{% url 'resend-email' %}" class="btn-popup btn-send">
-            인증 메일 보내기
-        </a>
-        <button onclick="closePopup()" class="btn-popup btn-close">
-            나중에 하기
-        </button>
-    </div>
+  <div class="popup-card">
+    <h2 style="margin:0 0 8px;">이메일 인증이 필요해요</h2>
+    <p style="margin:0 0 16px;color:var(--muted);">파티 생성/참여를 안정적으로 이용하려면 이메일 인증을 완료해주세요.</p>
+    <a href="{% url 'resend-email' %}" class="btn btn-solid" style="display:block;margin-bottom:8px;">인증 메일 보내기</a>
+    <button onclick="closePopup()" class="btn btn-ghost" type="button" style="width:100%;">나중에 하기</button>
+  </div>
 </div>
-
-<script>
-    function closePopup() {
-        const popup = document.getElementById('email-popup');
-        popup.style.opacity = '0';
-        setTimeout(() => { popup.style.display = 'none'; }, 300);
-    }
-</script>
 {% endif %}
 
 <section class="hero">
-  <div class="hero-grid">
-    <div class="panel">
-      <h1>실시간으로 파티 만들고<br>바로 같이 플레이해요.</h1>
-      <p class="lead">
-        게임 / 모드 / 인원만 고르면 파티가 생성되고, 바로 채팅방이 열립니다.
-        디스코드 친추든, 듀오든, 스크림이든 — 필요한 사람을 빠르게 모아보세요.
-      </p>
+  <article class="panel hero-main">
+    <span class="badge">실시간 팀 매칭</span>
+    <h1>지금 필요한 팀원을<br>지금 바로 모으세요.</h1>
+    <p>파티 생성, 인원 모집, 채팅, 재참여까지 모두 실시간 반영됩니다. 대기 시간 없이 바로 게임으로 넘어갈 수 있습니다.</p>
+    <div class="cta-row">
+      <a class="btn btn-solid" href="{% url 'party_list' %}">파티 찾기</a>
+      <a class="btn btn-ghost" href="{% url 'party_create' %}">파티 만들기</a>
+    </div>
+  </article>
 
-      <div class="hero-actions">
-        <a class="btn btn-primary" href="{% url 'party_list' %}">파티 찾기</a>
-        <a class="btn" href="{% url 'party_create' %}">파티 만들기</a>
-      </div>
-    </div>
-
-    <div class="panel">
-      <p class="card-title">이런 분들에게 좋아요</p>
-      <p class="card-text">• 혼자 하기 심심할 때 빠르게 팀원 모집</p>
-      <p class="card-text">• 내 주 게임/마이크 여부로 편하게 매칭</p>
-      <p class="card-text">• 파티별 실시간 채팅으로 바로 합류</p>
-    </div>
-  </div>
-
-  <div class="grid">
-    <div class="card">
-      <p class="card-title">⚡ 실시간 파티</p>
-      <p class="card-text">방 만들면 즉시 오픈되고, 인원 모이면 바로 출발.</p>
-    </div>
-    <div class="card">
-      <p class="card-title">💬 파티 채팅</p>
-      <p class="card-text">파티별 채팅방으로 디코/닉 공유까지 한 번에.</p>
-    </div>
-  </div>
+  <aside class="panel hero-side">
+    <h3 style="margin:0 0 8px;">지금 가능한 것</h3>
+    <p>1. 내 조건으로 방 생성</p>
+    <p>2. 파티별 비공개 채팅</p>
+    <p>3. 방장 권한 자동 위임</p>
+    <p>4. 블랙리스트 기반 재입장 차단</p>
+  </aside>
 </section>
+
+<section class="feature-grid">
+  <article class="card feature-card">
+    <h3>실시간 로비</h3>
+    <p>생성/삭제/인원 변동이 새로고침 없이 즉시 반영됩니다.</p>
+  </article>
+  <article class="card feature-card">
+    <h3>즉시 채팅</h3>
+    <p>파티 입장과 동시에 채팅 연결되어 디스코드 공유가 빠릅니다.</p>
+  </article>
+  <article class="card feature-card">
+    <h3>조건 맞춤 모집</h3>
+    <p>게임/모드/마이크 여부까지 한 번에 정의해 효율적으로 모읍니다.</p>
+  </article>
+</section>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+  function closePopup() {
+    const popup = document.getElementById('email-popup');
+    if (!popup) return;
+    popup.style.display = 'none';
+  }
+</script>
 {% endblock %}

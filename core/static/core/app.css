@@ -1,0 +1,239 @@
+:root {
+  --bg: #0b1017;
+  --surface: rgba(16, 22, 33, 0.85);
+  --surface-strong: #131b2a;
+  --line: rgba(255, 255, 255, 0.1);
+  --text: #f2f6ff;
+  --muted: rgba(242, 246, 255, 0.68);
+  --brand: #2fc7b3;
+  --brand-strong: #1f8bd8;
+  --ok: #39d98a;
+  --warn: #ff7b62;
+  --radius: 16px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Space Grotesk", "Pretendard", sans-serif;
+  color: var(--text);
+  background: radial-gradient(1300px 900px at -10% -10%, rgba(47, 199, 179, 0.2), transparent 55%),
+    radial-gradient(1000px 700px at 120% -5%, rgba(31, 139, 216, 0.2), transparent 52%),
+    var(--bg);
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.shell {
+  width: min(1160px, calc(100% - 36px));
+  margin: 0 auto;
+}
+
+.bg-shape {
+  position: fixed;
+  pointer-events: none;
+  z-index: -1;
+  filter: blur(70px);
+  opacity: 0.4;
+}
+
+.bg-shape-a {
+  width: 320px;
+  height: 320px;
+  left: -120px;
+  top: 120px;
+  background: #2fc7b3;
+}
+
+.bg-shape-b {
+  width: 300px;
+  height: 300px;
+  right: -90px;
+  top: 260px;
+  background: #1f8bd8;
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(12px);
+  background: rgba(11, 16, 23, 0.75);
+}
+
+.header-row {
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: linear-gradient(140deg, var(--brand), var(--brand-strong));
+  box-shadow: 0 8px 24px rgba(47, 199, 179, 0.45);
+}
+
+.brand-text {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.main-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.nav-chip {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--muted);
+  padding: 8px 13px;
+  font-size: 0.86rem;
+  transition: 160ms ease;
+}
+
+.nav-chip:hover,
+.nav-chip.is-active {
+  color: var(--text);
+  border-color: var(--line);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-actions form {
+  margin: 0;
+}
+
+.btn {
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  padding: 10px 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-solid {
+  border-color: rgba(47, 199, 179, 0.4);
+  background: linear-gradient(140deg, var(--brand), var(--brand-strong));
+}
+
+.btn-solid:hover {
+  filter: brightness(1.07);
+}
+
+.page-wrap {
+  padding-top: 34px;
+  padding-bottom: 52px;
+}
+
+.hero {
+  padding: 8px 0 16px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.card {
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.panel {
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+}
+
+.input,
+select,
+textarea {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  padding: 11px 12px;
+  font-family: inherit;
+}
+
+.input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: rgba(47, 199, 179, 0.55);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 11px;
+  font-size: 0.77rem;
+  color: var(--muted);
+}
+
+.site-footer {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.82rem;
+  padding: 22px 0;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+@media (max-width: 940px) {
+  .header-row {
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 12px 0;
+  }
+
+  .brand {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

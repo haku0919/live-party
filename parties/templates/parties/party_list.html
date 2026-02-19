@@ -1,204 +1,471 @@
 {% extends "parties/base.html" %}
 
+{% block title %}파티 찾기{% endblock %}
+
 {% block content %}
 <style>
-    .blocked-modal-overlay {
-        position: fixed;
-        inset: 0;
-        display: none;
-        justify-content: center;
-        align-items: center;
-        background: rgba(0, 0, 0, 0.6);
-        backdrop-filter: blur(4px);
-        z-index: 9999;
-    }
+  .lobby-head { margin-bottom: 18px; }
+  .lobby-head h1 { margin: 0; font-size: 2rem; }
+  .lobby-head p { margin: 8px 0 0; color: var(--muted); }
 
-    .blocked-modal {
-        width: 90%;
-        max-width: 420px;
-        background: #2f3136;
-        border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 14px;
-        padding: 28px;
-        text-align: center;
-        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
-    }
+  .toolbar {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr auto;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .toolbar .btn { white-space: nowrap; }
 
-    .blocked-modal h3 {
-        margin: 0 0 10px;
-        color: #fff;
-        font-size: 22px;
-        font-weight: 800;
-    }
+  .result-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
 
-    .blocked-modal p {
-        margin: 0 0 24px;
-        color: var(--muted);
-        line-height: 1.6;
-        font-size: 15px;
-    }
+  .party-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(285px, 1fr));
+    gap: 14px;
+  }
 
-    .blocked-modal button {
-        width: 100%;
-        border: none;
-        border-radius: 10px;
-        padding: 12px;
-        background: var(--brand);
-        color: #fff;
-        font-weight: 700;
-        cursor: pointer;
-    }
+  .create-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 260px;
+    border: 1px dashed rgba(255, 255, 255, 0.23);
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius);
+    color: var(--muted);
+  }
+
+  .party-card {
+    min-height: 260px;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    transition: 200ms ease;
+  }
+  .party-card:hover { transform: translateY(-4px); }
+
+  .party-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: start;
+  }
+
+  .party-title {
+    margin: 12px 0 8px;
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+
+  .party-desc {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+    min-height: 44px;
+  }
+
+  .party-meta {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  .party-actions {
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+  }
+
+  .party-actions form { margin: 0; }
+
+  .tag-danger {
+    border: 1px solid rgba(255, 123, 98, 0.45);
+    color: #ffaf9f;
+    border-radius: 999px;
+    padding: 4px 9px;
+    font-size: 0.73rem;
+  }
+
+  .empty-state {
+    display: none;
+    text-align: center;
+    color: var(--muted);
+    border: 1px dashed var(--line);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+
+  .blocked-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.72);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 99;
+  }
+  .blocked-modal {
+    width: min(92%, 400px);
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: var(--surface-strong);
+    padding: 22px;
+    text-align: center;
+  }
+
+  @media (max-width: 960px) {
+    .toolbar { grid-template-columns: 1fr 1fr; }
+    .toolbar .search-box { grid-column: 1 / -1; }
+  }
 </style>
 
-<div class="container" style="max-width: 1200px; margin: 0 auto; padding: 20px;">
-    
-    <div style="margin-bottom: 30px;">
-        <h2 style="margin: 0;">🔭 파티 찾기</h2>
-        <p style="color: var(--muted); margin-top: 5px;">현재 활성화된 파티 목록입니다.</p>
-    </div>
+<section>
+  <div class="lobby-head">
+    <h1>파티 찾기</h1>
+    <p>실시간으로 열리는 파티를 필터링해서 빠르게 합류하세요.</p>
+  </div>
 
-    <div id="party-grid" class="grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
-        
-        <a href="{% url 'party_create' %}" class="card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; border: 2px dashed rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); color: var(--muted); transition: all 0.2s ease; min-height: 250px; border-radius: 12px; order: -9999;">
-            <div style="font-size: 40px; margin-bottom: 15px;">➕</div>
-            <h3 style="margin: 0;">새 파티 만들기</h3>
+  <div class="toolbar">
+    <input id="filter-search" class="input search-box" type="search" placeholder="게임, 모드, 호스트 검색 (/ 누르면 바로 입력)">
+    <select id="filter-game" class="input">
+      <option value="">모든 게임</option>
+      {% for party in parties %}
+        <option value="{{ party.game.name|lower }}">{{ party.game.name }}</option>
+      {% endfor %}
+    </select>
+    <select id="filter-mic" class="input">
+      <option value="">마이크 조건 전체</option>
+      <option value="yes">마이크 필수</option>
+      <option value="no">마이크 자유</option>
+    </select>
+    <select id="filter-slot" class="input">
+      <option value="">인원 상태 전체</option>
+      <option value="open">여유 있음</option>
+      <option value="almost">마감 임박(1자리)</option>
+    </select>
+    <button id="sort-by" class="btn btn-ghost" type="button">정렬: 최신순</button>
+  </div>
+
+  <div class="result-line">
+    <span id="result-count">표시 중 0개</span>
+    <span>실시간 갱신 중</span>
+  </div>
+
+  <div id="party-grid" class="party-grid">
+    <a href="{% url 'party_create' %}" class="create-card" data-card="create">
+      <strong style="font-size: 2rem; line-height: 1;">＋</strong>
+      <strong>새 파티 만들기</strong>
+      <span style="font-size: 0.82rem;">내 조건으로 직접 모집 시작</span>
+    </a>
+
+    {% for party in parties %}
+      <article
+        id="party-card-{{ party.id }}"
+        class="card party-card"
+        data-card="party"
+        data-game="{{ party.game.name|lower }}"
+        data-game-label="{{ party.game.name }}"
+        data-mode="{{ party.mode|lower }}"
+        data-host="{{ party.host.nickname|default:party.host.username|lower }}"
+        data-mic="{% if party.mic_required %}yes{% else %}no{% endif %}"
+        data-join-policy="{{ party.join_policy }}"
+        data-status-code="{{ party.status }}"
+        data-current="{{ party.current_member_count }}"
+        data-max="{{ party.max_members }}"
+        data-created="{{ party.created_at|date:'U' }}"
+      >
+        <a href="{% url 'party_detail' party.pk %}" style="display:block;">
+          <div class="party-top">
+            <span class="badge" data-role="game">{{ party.game.name }}</span>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+              {% if party.join_policy == 'APPROVAL' %}<span class="badge" data-role="join-policy-badge">승인제</span>{% endif %}
+              {% if party.mic_required %}<span class="tag-danger">마이크 필수</span>{% endif %}
+            </div>
+          </div>
+
+          <h2 class="party-title" data-role="mode">{{ party.mode }}</h2>
+          <p class="party-desc" data-role="desc">{{ party.description|default:"설명 없이 빠르게 출발하는 파티입니다."|truncatechars:65 }}</p>
+
+          <div class="party-meta">
+            <span data-role="count">{{ party.current_member_count }} / {{ party.max_members }}명</span>
+            <span data-role="host">{{ party.host.nickname|default:party.host.username }}</span>
+          </div>
         </a>
 
-        {% for party in parties %}
-            <div id="party-card-{{ party.id }}" class="card" style="padding: 20px; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; background: #2f3136; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s;">
-                
-                <a href="{% url 'party_detail' party.pk %}" style="text-decoration: none; color: inherit; display: block; flex: 1;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-                        <span class="badge-game" style="background: var(--brand); color: white; padding: 4px 10px; border-radius: 15px; font-size: 11px; font-weight: bold;">
-                            {{ party.game.name }}
-                        </span>
-                        {% if party.mic_required %}
-                        <span style="color: #eb4d4b; font-size: 12px; font-weight: bold;">🎙️ 마이크 필수</span>
-                        {% endif %}
-                    </div>
+        <div class="party-actions">
+          {% if request.user in party.members.all %}
+            <a href="{% url 'party_detail' party.pk %}" class="btn btn-ghost" style="display:block;text-align:center;">참여중 · 입장하기</a>
+          {% else %}
+            <form action="{% url 'party_join' party.pk %}" method="post">
+              {% csrf_token %}
+              <button class="btn btn-solid" type="submit" style="width:100%;">
+                {% if party.join_policy == 'APPROVAL' %}
+                  참가 신청
+                {% elif party.status == 'FULL' %}
+                  대기열 참가
+                {% else %}
+                  참여하기
+                {% endif %}
+              </button>
+            </form>
+          {% endif %}
+        </div>
+      </article>
+    {% endfor %}
+  </div>
 
-                    <h3 style="margin: 0 0 10px; font-size: 1.4rem; color: white;">모드 : {{ party.mode }}</h3>
-                    
-                    <p style="color: var(--muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px; min-height: 45px;">
-                        설명 : {{ party.description|truncatechars:60|default:"없음" }}
-                    </p>
-                    
-                    <div style="display: flex; align-items: center; gap: 10px; color: #b9bbbe; font-size: 14px;">
-                        <div style="display: flex; align-items: center; gap: 4px;">
-                            <span style="width: 8px; height: 8px; border-radius: 50%; background: #3ba55c;"></span>
-                            <span class="member-info">{{ party.current_member_count }} / {{ party.max_members }}명</span>
-                        </div>
-                        <span style="color: rgba(255,255,255,0.1);">|</span>
-                        <span>{{ party.host.nickname|default:party.host.username }}</span>
-                    </div>
-                </a>
-
-                <div style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
-                    {% if request.user in party.members.all %}
-                        <a href="{% url 'party_detail' party.pk %}" class="btn" style="width: 100%; display: block; text-align: center; background: #4f545c; color: white; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; transition: 0.2s;">
-                            이미 참여중 (입장)
-                        </a>
-                    {% else %}
-                        <form action="{% url 'party_join' party.pk %}" method="post">
-                            {% csrf_token %}
-                            <button type="submit" class="btn" style="width: 100%; display: block; text-align: center; background: var(--brand); color: white; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; transition: 0.2s; border: none; cursor: pointer;">
-                                참여하기
-                            </button>
-                        </form>
-                    {% endif %}
-                </div>
-            </div>
-        {% endfor %}
-    </div>
-</div>
+  <div id="empty-state" class="empty-state">조건에 맞는 파티가 없습니다. 필터를 완화하거나 직접 파티를 만들어보세요.</div>
+</section>
 
 <div id="blocked-modal-overlay" class="blocked-modal-overlay">
-    <div class="blocked-modal">
-        <div style="font-size: 46px; margin-bottom: 12px;">🚫</div>
-        <h3>입장할 수 없는 파티입니다</h3>
-        <p>호스트에 의해 참여가 제한된 파티입니다.<br>다른 파티를 이용해 주세요.</p>
-        <button id="blocked-modal-confirm">확인</button>
-    </div>
+  <div class="blocked-modal">
+    <h3 style="margin:0 0 8px;">입장할 수 없는 파티입니다</h3>
+    <p style="margin:0 0 16px; color:var(--muted);">호스트에 의해 참여가 제한된 파티입니다.</p>
+    <button id="blocked-modal-confirm" class="btn btn-solid" type="button">확인</button>
+  </div>
 </div>
+{% endblock %}
 
+{% block extra_script %}
 <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const isBlocked = urlParams.get('blocked') === '1';
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
 
-    if (isBlocked) {
-        const blockedModal = document.getElementById('blocked-modal-overlay');
-        const blockedConfirm = document.getElementById('blocked-modal-confirm');
-        blockedModal.style.display = 'flex';
+  const csrfToken = getCookie('csrftoken') || '';
+  const filterSearch = document.getElementById('filter-search');
+  const filterGame = document.getElementById('filter-game');
+  const filterMic = document.getElementById('filter-mic');
+  const filterSlot = document.getElementById('filter-slot');
+  const sortByBtn = document.getElementById('sort-by');
+  const partyGrid = document.getElementById('party-grid');
+  const resultCount = document.getElementById('result-count');
+  const emptyState = document.getElementById('empty-state');
 
-        blockedConfirm.addEventListener('click', function () {
-            blockedModal.style.display = 'none';
-            urlParams.delete('blocked');
-            const newQuery = urlParams.toString();
-            const newUrl = `${window.location.pathname}${newQuery ? `?${newQuery}` : ''}`;
-            window.history.replaceState({}, '', newUrl);
-        });
+  let sortMode = 'new';
+
+  function rebuildGameOptions() {
+    const prev = filterGame.value;
+    const gameMap = new Map();
+    Array.from(document.querySelectorAll('[data-card="party"]')).forEach(card => {
+      if (card.dataset.game) {
+        gameMap.set(card.dataset.game, card.dataset.gameLabel || card.dataset.game);
+      }
+    });
+
+    filterGame.innerHTML = '<option value="">모든 게임</option>';
+    Array.from(gameMap.entries()).sort((a, b) => a[1].localeCompare(b[1])).forEach(([value, label]) => {
+      const opt = document.createElement('option');
+      opt.value = value;
+      opt.textContent = label;
+      filterGame.appendChild(opt);
+    });
+    if (prev && gameMap.has(prev)) filterGame.value = prev;
+  }
+
+  rebuildGameOptions();
+
+  function calcSlotState(card) {
+    const current = Number(card.dataset.current || '0');
+    const max = Number(card.dataset.max || '0');
+    if (max - current <= 1) return 'almost';
+    return 'open';
+  }
+
+  function applyFilters() {
+    const q = filterSearch.value.trim().toLowerCase();
+    const game = filterGame.value;
+    const mic = filterMic.value;
+    const slot = filterSlot.value;
+
+    const cards = Array.from(document.querySelectorAll('[data-card="party"]'));
+    cards.forEach(card => {
+      const inSearch = [card.dataset.game, card.dataset.mode, card.dataset.host].join(' ').includes(q);
+      const inGame = !game || card.dataset.game === game;
+      const inMic = !mic || card.dataset.mic === mic;
+      const inSlot = !slot || calcSlotState(card) === slot;
+      card.style.display = (inSearch && inGame && inMic && inSlot) ? '' : 'none';
+    });
+
+    const visibleCards = cards.filter(card => card.style.display !== 'none');
+    resultCount.textContent = `표시 중 ${visibleCards.length}개`;
+    emptyState.style.display = visibleCards.length === 0 ? 'block' : 'none';
+
+    visibleCards.sort((a, b) => {
+      if (sortMode === 'slots') {
+        const aRemain = Number(a.dataset.max) - Number(a.dataset.current);
+        const bRemain = Number(b.dataset.max) - Number(b.dataset.current);
+        return aRemain - bRemain;
+      }
+      return Number(b.dataset.created) - Number(a.dataset.created);
+    }).forEach(card => partyGrid.appendChild(card));
+  }
+
+  [filterSearch, filterGame, filterMic, filterSlot].forEach(el => {
+    el.addEventListener('input', applyFilters);
+    el.addEventListener('change', applyFilters);
+  });
+
+  sortByBtn.addEventListener('click', () => {
+    sortMode = sortMode === 'new' ? 'slots' : 'new';
+    sortByBtn.textContent = sortMode === 'new' ? '정렬: 최신순' : '정렬: 마감임박순';
+    applyFilters();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === '/' && document.activeElement !== filterSearch) {
+      e.preventDefault();
+      filterSearch.focus();
+    }
+  });
+
+  function buildCardHtml(party) {
+    return `
+      <article
+        id="party-card-${party.id}"
+        class="card party-card"
+        data-card="party"
+        data-game="${(party.game || '').toLowerCase()}"
+        data-game-label="${party.game || ''}"
+        data-mode="${(party.title || '').toLowerCase()}"
+        data-host="${(party.host || '').toLowerCase()}"
+        data-mic="${party.mic_required ? 'yes' : 'no'}"
+        data-join-policy="${party.join_policy || 'INSTANT'}"
+        data-status-code="${party.status_code || 'OPEN'}"
+        data-current="${party.current_count || 0}"
+        data-max="${party.max_members || 0}"
+        data-created="${Math.floor(Date.now() / 1000)}"
+      >
+        <a href="/parties/${party.id}/" style="display:block;">
+          <div class="party-top">
+            <span class="badge" data-role="game">${party.game || ''}</span>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+              ${(party.join_policy === 'APPROVAL') ? '<span class="badge" data-role="join-policy-badge">승인제</span>' : ''}
+              ${party.mic_required ? '<span class="tag-danger">마이크 필수</span>' : ''}
+            </div>
+          </div>
+          <h2 class="party-title" data-role="mode">${party.title || '모드 미정'}</h2>
+          <p class="party-desc" data-role="desc">${party.description || '실시간으로 생성된 파티입니다.'}</p>
+          <div class="party-meta">
+            <span data-role="count">${party.current_count || 0} / ${party.max_members || 0}명</span>
+            <span data-role="host">${party.host || '-'}</span>
+          </div>
+        </a>
+        <div class="party-actions">
+          <form action="/parties/${party.id}/join/" method="post">
+            <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+            <button class="btn btn-solid" type="submit" style="width:100%;">${party.join_policy === 'APPROVAL' ? '참가 신청' : (party.status_code === 'FULL' ? '대기열 참가' : '참여하기')}</button>
+          </form>
+        </div>
+      </article>
+    `;
+  }
+
+  const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+  const lobbySocket = new WebSocket(protocol + window.location.host + '/ws/lobby/');
+
+  lobbySocket.onmessage = function (e) {
+    const data = JSON.parse(e.data);
+
+    if (data.type === 'party_update') {
+      const p = data.party_data;
+      const cardId = `party-card-${p.id}`;
+      const existing = document.getElementById(cardId);
+
+      if (existing) {
+        existing.dataset.mode = (p.title || '').toLowerCase();
+        existing.dataset.host = (p.host || '').toLowerCase();
+        existing.dataset.game = (p.game || '').toLowerCase();
+        existing.dataset.gameLabel = p.game || '';
+        existing.dataset.current = p.current_count || 0;
+        existing.dataset.max = p.max_members || 0;
+        existing.dataset.mic = p.mic_required ? 'yes' : 'no';
+        existing.dataset.joinPolicy = p.join_policy || 'INSTANT';
+        existing.dataset.statusCode = p.status_code || 'OPEN';
+
+        const modeEl = existing.querySelector('[data-role="mode"]');
+        const countEl = existing.querySelector('[data-role="count"]');
+        const hostEl = existing.querySelector('[data-role="host"]');
+        const gameEl = existing.querySelector('[data-role="game"]');
+        const descEl = existing.querySelector('[data-role="desc"]');
+        const actionBtn = existing.querySelector('.party-actions button');
+        let joinBadge = existing.querySelector('[data-role="join-policy-badge"]');
+
+        if (modeEl) modeEl.textContent = p.title || '모드 미정';
+        if (countEl) countEl.textContent = `${p.current_count || 0} / ${p.max_members || 0}명`;
+        if (hostEl) hostEl.textContent = p.host || '-';
+        if (gameEl) gameEl.textContent = p.game || '';
+        if (descEl) descEl.textContent = p.description || '실시간으로 생성된 파티입니다.';
+        if (actionBtn) {
+          if (p.join_policy === 'APPROVAL') {
+            actionBtn.textContent = '참가 신청';
+          } else if (p.status_code === 'FULL') {
+            actionBtn.textContent = '대기열 참가';
+          } else {
+            actionBtn.textContent = '참여하기';
+          }
+        }
+
+        if (p.join_policy === 'APPROVAL' && !joinBadge) {
+          const topWrap = existing.querySelector('.party-top > div');
+          if (topWrap) topWrap.insertAdjacentHTML('afterbegin', '<span class="badge" data-role="join-policy-badge">승인제</span>');
+        }
+        if (p.join_policy !== 'APPROVAL' && joinBadge) {
+          joinBadge.remove();
+        }
+      } else if (data.is_new) {
+        partyGrid.insertAdjacentHTML('beforeend', buildCardHtml(p));
+        rebuildGameOptions();
+      }
+
+      applyFilters();
     }
 
-    const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-    const lobbySocket = new WebSocket(protocol + window.location.host + '/ws/lobby/');
+    if (data.type === 'party_deleted') {
+      const card = document.getElementById(`party-card-${data.party_id}`);
+      if (card) {
+        card.remove();
+        applyFilters();
+      }
+    }
+  };
 
-    lobbySocket.onmessage = function(e) {
-        const data = JSON.parse(e.data);
-        const grid = document.getElementById('party-grid');
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('blocked') === '1') {
+    const blockedModal = document.getElementById('blocked-modal-overlay');
+    blockedModal.style.display = 'flex';
 
-        // 1. 파티 정보 업데이트
-        if (data.type === 'party_update') {
-            const p = data.party_data;
-            const cardId = `party-card-${p.id}`;
-            const existingCard = document.getElementById(cardId);
+    document.getElementById('blocked-modal-confirm').addEventListener('click', function () {
+      blockedModal.style.display = 'none';
+      urlParams.delete('blocked');
+      const nextQuery = urlParams.toString();
+      history.replaceState({}, '', `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}`);
+    });
+  }
 
-            // (A) 기존 카드 업데이트 (제목, 인원수 등)
-            if (existingCard) {
-                existingCard.querySelector('h3').innerText = p.title;
-                existingCard.querySelector('.member-info').innerText = `${p.current_count} / ${p.max_members}명`;
-            } 
-            // (B) 새 파티 카드 생성
-            else if (data.is_new) {
-                // CSRF 토큰 가져오기 (JS에서 폼 전송을 위해 필요)
-                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-                
-                const newCardHtml = `
-                <div id="${cardId}" class="card" style="padding: 20px; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; background: #2f3136; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s;">
-                    <a href="/parties/${p.id}/" style="text-decoration: none; color: inherit; display: block; flex: 1;">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-                            <span class="badge-game" style="background: var(--brand); color: white; padding: 4px 10px; border-radius: 15px; font-size: 11px; font-weight: bold;">${p.game}</span>
-                        </div>
-                        <h3 style="margin: 0 0 10px; font-size: 1.4rem; color: white;">${p.title}</h3>
-                        <p style="color: var(--muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px; min-height: 45px;">${p.description || "설명 없이 쿨하게 모집 중..."}</p>
-                        <div style="display: flex; align-items: center; gap: 10px; color: #b9bbbe; font-size: 14px;">
-                            <div style="display: flex; align-items: center; gap: 4px;">
-                                <span style="width: 8px; height: 8px; border-radius: 50%; background: #3ba55c;"></span>
-                                <span class="member-info">${p.current_count} / ${p.max_members}명</span>
-                            </div>
-                            <span style="color: rgba(255,255,255,0.1);">|</span>
-                            <span>${p.host}</span>
-                        </div>
-                    </a>
-                    <div style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
-                        <form action="/parties/${p.id}/join/" method="post">
-                            <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
-                            <button type="submit" class="btn" style="width: 100%; display: block; text-align: center; background: var(--brand); color: white; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; transition: 0.2s; border: none; cursor: pointer;">
-                                참여하기
-                            </button>
-                        </form>
-                    </div>
-                </div>`;
-                
-                // '새 파티 만들기' 버튼 바로 뒤에 추가
-                grid.firstElementChild.insertAdjacentHTML('afterend', newCardHtml);
-            }
-        }
-
-        // 2. 파티 삭제 처리
-        if (data.type === 'party_deleted') {
-            const card = document.getElementById(`party-card-${data.party_id}`);
-            if (card) card.remove();
-        }
-    };
+  applyFilters();
 </script>
 {% endblock %}

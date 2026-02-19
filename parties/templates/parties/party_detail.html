@@ -1,592 +1,1554 @@
 {% extends "parties/base.html" %}
-{% load static %}
+
+{% block title %}{{ party.game.name }} · {{ party.mode }}{% endblock %}
 
 {% block content %}
 <style>
-    /* --- [1. 레이아웃 & 디자인 (기존 유지)] --- */
-    :root {
-        --chat-bg: #36393f;        /* 채팅 배경 */
-        --sidebar-bg: #2f3136;     /* 사이드바 배경 */
-        --header-bg: #202225;      /* 헤더/입력창 배경 */
-        --my-msg-bg: #5865F2;      /* 내 메시지 (파란색) */
-        --other-msg-bg: #40444b;   /* 상대 메시지 (회색) */
-        --text-color: #dcddde;     /* 기본 텍스트 */
-        --muted-color: #72767d;    /* 흐린 텍스트 */
+  .party-layout {
+    display: grid;
+    grid-template-columns: minmax(300px, 350px) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 92px;
+    max-height: calc(100vh - 114px);
+    overflow: auto;
+    scrollbar-gutter: stable;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .summary-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .room-title {
+    font-size: 1.45rem;
+    margin: 0;
+  }
+
+  .desc-box {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.55;
+    white-space: pre-wrap;
+    max-height: 140px;
+    overflow: auto;
+    padding-right: 4px;
+  }
+
+  .meter {
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .meter > div {
+    height: 100%;
+    background: linear-gradient(120deg, var(--brand), var(--ok));
+    transition: width 180ms ease;
+  }
+
+  #member-list-container {
+    overflow: auto;
+    max-height: 250px;
+  }
+
+  .member-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 10px;
+    margin-bottom: 8px;
+  }
+
+  .member-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .icon-btn {
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 4px 7px;
+  }
+
+  .icon-btn.warn {
+    color: #ff9090;
+    border-color: rgba(255, 120, 120, 0.35);
+  }
+
+  .request-panel {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 10px;
+    display: none;
+  }
+
+  .request-item {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 8px;
+    margin-top: 8px;
+  }
+
+  .request-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .request-actions form { margin: 0; flex: 1; }
+  .request-actions button { width: 100%; }
+
+  .settings-panel .input,
+  .settings-panel textarea {
+    margin-top: 6px;
+  }
+
+  .settings-panel .field {
+    margin-top: 10px;
+  }
+
+  .waitlist-list {
+    margin-top: 8px;
+    max-height: 130px;
+    overflow: auto;
+  }
+
+  .wait-item {
+    padding: 6px 8px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    font-size: .83rem;
+    color: var(--muted);
+  }
+
+  .chat-wrap {
+    position: sticky;
+    top: 92px;
+    min-height: calc(100vh - 114px);
+    max-height: calc(100vh - 114px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .chat-head {
+    border-bottom: 1px solid var(--line);
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .chat-head-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .mention-filter.active {
+    border-color: rgba(47, 199, 179, 0.45);
+    color: #7bf0e2;
+  }
+
+  .pinned-notice {
+    margin: 12px 16px 0;
+    border: 1px solid rgba(47, 199, 179, 0.35);
+    background: rgba(47, 199, 179, 0.08);
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+
+  .pinned-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: .83rem;
+    color: #9deee3;
+  }
+
+  .pinned-content {
+    margin: 8px 0 0;
+    font-size: .9rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .pinned-meta {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: .76rem;
+  }
+
+  .chat-log {
+    flex: 1;
+    min-height: 180px;
+    overflow: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+  }
+
+  .message-row { display: flex; flex-direction: column; gap: 4px; }
+  .message-row.mine { align-items: flex-end; }
+  .message-row.other { align-items: flex-start; }
+
+  .message-sender {
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  .message-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .mine .message-content {
+    align-items: flex-end;
+  }
+
+  .message-bubble {
+    max-width: min(75%, 550px);
+    min-width: 2.4em;
+    padding: 9px 12px;
+    border-radius: 12px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+
+  .mine .message-bubble {
+    background: linear-gradient(140deg, rgba(47, 199, 179, 0.9), rgba(31, 139, 216, 0.9));
+    color: #04141a;
+    border-bottom-right-radius: 4px;
+    font-weight: 600;
+  }
+
+  .other .message-bubble {
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom-left-radius: 4px;
+  }
+
+  .message-row.mention-me .message-bubble {
+    border-color: rgba(47, 199, 179, 0.55);
+    box-shadow: 0 0 0 1px rgba(47, 199, 179, 0.35) inset;
+  }
+
+  .system-message {
+    align-self: center;
+    font-size: 0.76rem;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 999px;
+    padding: 4px 10px;
+  }
+
+  .chat-input-area {
+    border-top: 1px solid var(--line);
+    padding: 12px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+  }
+
+  .mention-input-wrap {
+    position: relative;
+    flex: 1;
+  }
+
+  .chat-input-area input { width: 100%; }
+
+  .mention-suggest {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(100% + 6px);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface-strong);
+    max-height: 180px;
+    overflow: auto;
+    z-index: 12;
+  }
+
+  .mention-option {
+    width: 100%;
+    text-align: left;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    padding: 8px 10px;
+    cursor: pointer;
+    font-size: .83rem;
+  }
+
+  .mention-option.active,
+  .mention-option:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .pin-trigger {
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--muted);
+    border-radius: 8px;
+    font-size: .72rem;
+    padding: 4px 7px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 95;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.76);
+  }
+
+  .overlay-card {
+    width: min(92%, 380px);
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: var(--surface-strong);
+    text-align: center;
+    padding: 22px;
+  }
+
+  @media (max-width: 1080px) {
+    .party-layout {
+      grid-template-columns: 1fr;
+      min-height: auto;
     }
 
-    .party-wrapper {
-        display: flex;
-        height: 85vh;
-        max-width: 1200px;
-        margin: 0 auto;
-        gap: 16px;
-        padding: 20px;
-        box-sizing: border-box;
+    .sidebar,
+    .chat-wrap {
+      position: static;
+      top: auto;
+      max-height: none;
+      min-height: 0;
     }
 
-    /* 좌측 정보 패널 */
-    .info-sidebar {
-        flex: 1;
-        background: var(--sidebar-bg);
-        border-radius: 8px;
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-        min-width: 300px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-
-    /* 우측 채팅 패널 */
-    .chat-main {
-        flex: 2.5;
-        background: var(--chat-bg);
-        border-radius: 8px;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-
-    .chat-header {
-        padding: 16px;
-        background: var(--header-bg);
-        border-bottom: 1px solid rgba(0,0,0,0.2);
-        font-weight: bold;
-        color: white;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    #chat-log {
-        flex: 1;
-        overflow-y: auto;
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-    
-    #chat-log::-webkit-scrollbar { width: 8px; }
-    #chat-log::-webkit-scrollbar-thumb { background: #202225; border-radius: 4px; }
-
-    .message-row { display: flex; flex-direction: column; }
-    .message-row.mine { align-items: flex-end; }
-    .message-row.other { align-items: flex-start; }
-
-    .message-sender {
-        font-size: 12px;
-        color: var(--muted-color);
-        margin-bottom: 4px;
-        margin-left: 4px;
-    }
-    .message-bubble {
-        padding: 10px 14px;
-        border-radius: 8px;
-        color: white;
-        max-width: 70%;
-        word-wrap: break-word;
-        font-size: 15px;
-        line-height: 1.4;
-    }
-    .mine .message-bubble { background: var(--my-msg-bg); border-bottom-right-radius: 0; }
-    .other .message-bubble { background: var(--other-msg-bg); border-bottom-left-radius: 0; }
-
-    .system-message {
-        align-self: center;
-        background: rgba(255, 255, 255, 0.05);
-        color: var(--muted-color);
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        margin: 10px 0;
-    }
-
-    .chat-input-area {
-        padding: 20px;
-        background: var(--header-bg);
-        display: flex;
-        gap: 10px;
-    }
-    .chat-input {
-        flex: 1;
-        background: #40444b;
-        border: none;
-        padding: 12px;
-        border-radius: 8px;
-        color: white;
-        font-size: 15px;
-    }
-    .chat-input:focus { outline: none; background: #4f545c; }
-    .send-btn {
-        background: var(--my-msg-bg);
-        color: white;
-        border: none;
-        padding: 0 24px;
-        border-radius: 8px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: 0.2s;
-    }
-    .send-btn:hover { filter: brightness(1.1); }
-
-    /* 모달 스타일 (기존 파티 종료 모달) */
-    .modal-overlay {
-        display: none;
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0, 0, 0, 0.7);
-        backdrop-filter: blur(4px);
-        z-index: 9999;
-        justify-content: center;
-        align-items: center;
-    }
-    .modal-box {
-        background: #36393f;
-        padding: 30px;
-        border-radius: 12px;
-        text-align: center;
-        max-width: 350px;
-        border: 1px solid #202225;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
-
-    /* 설명창 스크롤바 커스텀 */
-    .desc-scroll::-webkit-scrollbar { width: 6px; }
-    .desc-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
-    .desc-scroll::-webkit-scrollbar-track { background: transparent; }
-
-    /* 멤버 리스트 아이템 스타일 */
-    .member-item {
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center;
-        background: rgba(255,255,255,0.04); 
-        padding: 10px; 
-        border-radius: 8px; 
-        margin-bottom: 8px;
-        transition: background 0.2s;
-    }
-    .member-item:hover { 
-        background: rgba(255,255,255,0.08); 
-    }
-
-    /* --- [NEW] 강퇴 안내 팝업 스타일 (디자인만 얹었습니다!) --- */
-    .kick-modal-overlay {
-        display: none; /* 평소엔 숨김 */
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0, 0, 0, 0.85); /* 배경을 더 어둡게 */
-        backdrop-filter: blur(5px); /* 배경 흐림 효과 */
-        z-index: 9999;
-        justify-content: center;
-        align-items: center;
-        animation: fadeIn 0.3s ease-out;
-    }
-
-    .kick-modal-box {
-        background: #36393f; /* 다크 테마 배경 */
-        padding: 40px 30px;
-        border-radius: 16px;
-        width: 90%;
-        max-width: 380px;
-        text-align: center;
-        border: 1px solid rgba(255,255,255,0.1);
-        box-shadow: 0 15px 50px rgba(0,0,0,0.7);
-        transform: scale(0.9);
-        animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    }
-
-    .kick-btn {
-        width: 100%;
-        padding: 14px;
-        border-radius: 10px;
-        font-weight: 800;
-        cursor: pointer;
-        border: none;
-        font-size: 16px;
-        background: #ed4245; /* 🚨 강렬한 빨간색 (퇴장 의미) */
-        color: white;
-        transition: 0.2s;
-        margin-top: 10px;
-    }
-
-    .kick-btn:hover { background: #c03537; transform: translateY(-2px); }
-
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes popIn { to { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+    #member-list-container { max-height: 200px; }
+  }
 </style>
 
-<div class="party-wrapper">
-    <div class="info-sidebar">
-        <div style="display:flex; gap:10px; margin-bottom:12px;">
-            <span style="background: var(--my-msg-bg); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
-                {{ party.game.name }}
+<section class="party-layout">
+  <aside class="card sidebar">
+    <div class="summary-row">
+      <span class="badge">{{ party.game.name }}</span>
+      <span id="join-policy-badge" class="badge" {% if party.join_policy != 'APPROVAL' %}style="display:none"{% endif %}>승인제</span>
+      <span id="mic-badge" class="badge" style="{% if not party.mic_required %}display:none;{% endif %}border-color:rgba(255,123,98,.45);color:#ffaf9f;">마이크 필수</span>
+      <span class="badge" id="party-status">{{ party.get_status_display }}</span>
+    </div>
+
+    <h1 class="room-title" id="party-mode-label">{{ party.mode }}</h1>
+    <p class="desc-box" id="party-desc-label">{{ party.description|default:"파티 설명이 없습니다." }}</p>
+
+    <div class="summary-row" style="justify-content:space-between;">
+      <strong>인원 <span id="member-count">{{ party.current_member_count }}</span> / <span id="max-members">{{ party.max_members }}</span></strong>
+      <button id="copy-invite" type="button" class="btn btn-ghost">초대 링크 복사</button>
+    </div>
+
+    <div class="meter">
+      <div id="progress-bar" style="width: {% widthratio party.current_member_count party.max_members 100 %}%;"></div>
+    </div>
+    <p id="member-progress-percent" style="margin:6px 0 0;color:var(--muted);font-size:.78rem;">
+      {% widthratio party.current_member_count party.max_members 100 %}%
+    </p>
+
+    <div id="request-panel" class="request-panel" style="{% if is_host and party.join_policy == 'APPROVAL' %}display:block;{% endif %}">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <strong>참가 신청</strong>
+        <span class="badge" id="pending-request-count">{{ pending_requests|length }}건</span>
+      </div>
+      <div id="request-list">
+        {% for req in pending_requests %}
+          <div class="request-item" id="join-request-{{ req.id }}">
+            <div style="font-size:.92rem;">{{ req.user.nickname|default:req.user.username }}</div>
+            <div class="request-actions">
+              <form action="{% url 'party_join_request_approve' party.id req.id %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-solid">수락</button>
+              </form>
+              <form action="{% url 'party_join_request_reject' party.id req.id %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-ghost">거절</button>
+              </form>
+            </div>
+          </div>
+        {% empty %}
+          <p id="request-empty" style="color:var(--muted);font-size:.84rem;margin:8px 0 0;">대기 중인 신청이 없습니다.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if is_host %}
+    <div class="request-panel settings-panel" style="display:block;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <strong>파티 설정</strong>
+        <span class="badge">호스트 전용</span>
+      </div>
+      <form id="party-settings-form" action="{% url 'party_settings_update' party.id %}" method="post">
+        {% csrf_token %}
+        <div class="field">
+          <label for="settings-mode" style="font-size:.82rem;color:var(--muted);">모드</label>
+          <input id="settings-mode" class="input" type="text" name="mode" maxlength="50" value="{{ party.mode }}">
+        </div>
+        <div class="field">
+          <label for="settings-description" style="font-size:.82rem;color:var(--muted);">설명</label>
+          <textarea id="settings-description" class="input" name="description" rows="3">{{ party.description }}</textarea>
+        </div>
+        <div class="field">
+          <label for="settings-max-members" style="font-size:.82rem;color:var(--muted);">최대 인원</label>
+          <input id="settings-max-members" class="input" type="number" name="max_members" min="2" max="20" value="{{ party.max_members }}">
+        </div>
+        <label class="field" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input id="settings-mic-required" type="checkbox" name="mic_required" {% if party.mic_required %}checked{% endif %}>
+          <span style="font-size:.82rem;color:var(--muted);">마이크 필수</span>
+        </label>
+        <button type="submit" class="btn btn-solid" style="width:100%;margin-top:8px;">설정 저장</button>
+      </form>
+    </div>
+    {% endif %}
+
+    <div class="request-panel" style="display:block;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <strong>대기열</strong>
+        <span class="badge" id="waitlist-count">{{ waitlist_count }}명</span>
+      </div>
+      <p id="my-waitlist-rank" style="margin:8px 0 0;color:var(--muted);font-size:.84rem;">
+        {% if my_waitlist_rank %}내 대기 순번: {{ my_waitlist_rank }}번{% else %}내 대기 상태: 미등록{% endif %}
+      </p>
+      <div class="waitlist-list" id="waitlist-list">
+        {% for item in waitlist_entries %}
+          <div class="wait-item" data-user-id="{{ item.user.id }}">{{ forloop.counter }}. {{ item.user.nickname|default:item.user.username }}</div>
+        {% empty %}
+          <p id="waitlist-empty" style="margin:8px 0 0;color:var(--muted);font-size:.84rem;">대기자가 없습니다.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div>
+      <strong style="display:block;margin-bottom:8px;">참여 멤버</strong>
+      <div id="member-list-container">
+        {% for member in active_members %}
+          <div class="member-item">
+            <span>
+              {{ member.user.nickname|default:member.user.username }}
+              {% if party.host == member.user %}👑{% endif %}
+              {% if request.user == member.user %}<span style="color:var(--ok);font-size:.8rem;">(나)</span>{% endif %}
             </span>
-            {% if party.mic_required %}
-            <span style="background: #eb4d4b; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
-                🎙️ 마이크 필수
-            </span>
+            {% if is_host and member.user != party.host %}
+              <div class="member-actions">
+                <button type="button" class="icon-btn transfer-trigger" data-user-id="{{ member.user.id }}" data-user-name="{{ member.user.nickname|default:member.user.username }}">위임</button>
+                <form action="{% url 'party_kick' party.id member.user.id %}" method="post" onsubmit="return confirm('정말 {{ member.user.nickname|default:member.user.username }}님을 강퇴하시겠습니까?');">
+                  {% csrf_token %}
+                  <button type="submit" class="icon-btn warn">강퇴</button>
+                </form>
+              </div>
             {% endif %}
-        </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
 
-        <h2 style="margin: 0 0 12px; color: white;">{{ party.mode }}</h2>
-        
-        <div class="desc-scroll" style="
-            max-height: 200px; 
-            overflow-y: auto; 
-            padding-right: 10px; 
-            margin-bottom: 20px;
-        ">
-            <p style="
-                color: var(--text-color); 
-                font-size: 14px; 
-                line-height: 1.6;
-                margin: 0;
-                white-space: pre-wrap;
-                word-break: break-all;
-            ">{{ party.description|default:"파티 설명이 없습니다." }}</p>
-        </div>
-        
-        <hr style="border-color: rgba(255,255,255,0.1); margin: 20px 0;">
+    <div id="party-action-container">
+      {% if party.host == user %}
+        <form action="{% url 'party_leave' party.id %}" method="post" onsubmit="return confirm('파티에서 나가시겠습니까?\n다음 참여자에게 방장 권한이 위임됩니다.');">
+          {% csrf_token %}
+          <button type="submit" class="btn" style="width:100%;background:#ff5c5c;border-color:#ff5c5c;">방장 권한 넘기고 나가기</button>
+        </form>
+      {% elif is_member %}
+        <form action="{% url 'party_leave' party.id %}" method="post" onsubmit="return confirm('정말 파티에서 나가시겠습니까?');">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-ghost" style="width:100%;">파티 나가기</button>
+        </form>
+      {% elif party.join_policy == 'APPROVAL' and my_join_request_status == 'PENDING' %}
+        <form action="{% url 'party_join_request_cancel' party.id %}" method="post">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-ghost" style="width:100%;">신청 취소</button>
+        </form>
+      {% elif my_waitlist_rank %}
+        <button type="button" class="btn btn-ghost" style="width:100%;cursor:not-allowed;" disabled>대기열 {{ my_waitlist_rank }}번</button>
+      {% elif party.join_policy == 'APPROVAL' %}
+        <form action="{% url 'party_join' party.id %}" method="post">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-solid" style="width:100%;">참가 신청하기</button>
+        </form>
+      {% elif my_waitlist_rank %}
+        <button type="button" class="btn btn-ghost" style="width:100%;cursor:not-allowed;" disabled>대기열 {{ my_waitlist_rank }}번</button>
+      {% elif party.status == 'FULL' %}
+        <form action="{% url 'party_join' party.id %}" method="post">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-solid" style="width:100%;">대기열 참가</button>
+        </form>
+      {% else %}
+        <form action="{% url 'party_join' party.id %}" method="post">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-solid" style="width:100%;">파티 참여하기</button>
+        </form>
+      {% endif %}
+    </div>
+  </aside>
 
-        <div style="color: var(--text-color); font-weight: bold; margin-bottom: 10px;">
-            참여 인원 (<span id="member-count">{{ party.current_member_count }}</span>/{{ party.max_members }})
-        </div>
-        <div style="height: 8px; background: #202225; border-radius: 4px; overflow: hidden; margin-bottom: 15px;">
-            <div id="progress-bar" style="height: 100%; background: #3ba55c; width: calc(({{ party.current_member_count }} / {{ party.max_members }}) * 100%); transition: 0.3s;"></div>
-        </div>
+  <section class="card chat-wrap">
+    <header class="chat-head">
+      <strong>파티 채팅방</strong>
+      <div class="chat-head-right">
+        <button id="mention-filter-toggle" type="button" class="btn btn-ghost mention-filter">멘션만 보기</button>
+        <span class="badge" id="message-count">메시지 {{ chat_messages|length }}개</span>
+      </div>
+    </header>
 
-        <div style="color: var(--text-color); font-weight: bold; margin-bottom: 10px;">
-            참여 멤버 리스트
-        </div>
+    <div id="pinned-notice" class="pinned-notice" {% if not pinned_notice %}style="display:none;"{% endif %}>
+      <div class="pinned-title">
+        <strong>📌 고정 공지</strong>
+        <button id="pinned-clear-btn" type="button" class="btn btn-ghost" style="padding:4px 8px;font-size:.72rem;{% if not is_host %}display:none;{% endif %}">공지 해제</button>
+      </div>
+      <p id="pinned-content" class="pinned-content">{% if pinned_notice %}{{ pinned_notice.content }}{% endif %}</p>
+      <p id="pinned-meta" class="pinned-meta">{% if pinned_notice %}작성자: {{ pinned_notice.sender }}{% endif %}</p>
+    </div>
 
-        <div id="member-list-container" style="flex: 1; overflow-y: auto; margin-bottom: 20px;">
-            {% for member in active_members %}
-            <div class="member-item">
-                <span style="color: #dcddde; font-weight: 500;">
-                    {{ member.user.nickname }} 
-                    
-                    {% if party.host == member.user %}👑{% endif %}
-                    
-                    {% if request.user == member.user %}
-                        <span style="font-size: 12px; color: #3ba55c; margin-left: 5px;">(나)</span>
-                    {% endif %}
-                </span>
-                
-                {% if is_host and member.user != party.host %}
-                <form action="{% url 'party_kick' party.id member.user.id %}" method="post" style="display:inline;" onsubmit="return confirm('정말 {{ member.user.nickname }}님을 강퇴하시겠습니까?');">
-                    {% csrf_token %}
-                    <button type="submit" style="background: none; border: none; color: #ed4245; cursor: pointer; font-size: 18px; padding: 0 5px;" title="강퇴하기">×</button>
-                </form>
-                {% endif %}
-            </div>
-            {% empty %}
-            <div style="color: #72767d; text-align: center; padding: 20px;">멤버 정보를 불러오는 중...</div>
-            {% endfor %}
-        </div>
-        <div id="party-action-container" style="margin-top: auto;">
-            {% if party.host == user %}
-                <form action="{% url 'party_leave' party.id %}" method="post" onsubmit="return confirm('파티에서 나가시겠습니까?\n다음 참여자가 자동으로 방장이 됩니다.');">
-                    {% csrf_token %}
-                    <button type="submit" style="width: 100%; padding: 14px; background: #ed4245; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
-                        👋 방장 권한 넘기고 나가기
-                    </button>
-                </form>
-            {% elif is_member %}
-                <form action="{% url 'party_leave' party.id %}" method="post" onsubmit="return confirm('정말 파티에서 나가시겠습니까?');">
-                    {% csrf_token %}
-                    <button type="submit" style="width: 100%; padding: 14px; background: #4f545c; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
-                        👋 파티 나가기
-                    </button>
-                </form>
-            {% else %}
-                <form action="{% url 'party_join' party.id %}" method="post">
-                    {% csrf_token %}
-                    <button type="submit" style="width: 100%; padding: 14px; background: #3ba55c; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
-                        🚀 파티 참여하기
-                    </button>
-                </form>
+    <div id="chat-log" class="chat-log">
+      {% for msg in chat_messages %}
+        <div class="message-row {% if msg.user == request.user %}mine{% else %}other{% endif %}" data-chat-message="1" data-message-id="{{ msg.id }}">
+          <span class="message-sender">{{ msg.sender_name|default:msg.user.nickname|default:msg.user.username|default:"시스템" }}</span>
+          <div class="message-content">
+            <div class="message-bubble">{{ msg.content|cut:"\r"|cut:"\n" }}</div>
+            {% if is_host and msg.user %}
+              <button type="button" class="pin-trigger" data-message-id="{{ msg.id }}">공지 고정</button>
             {% endif %}
+          </div>
         </div>
+      {% endfor %}
+      <div class="system-message">채팅방에 연결되었습니다.</div>
     </div>
 
-    <div class="chat-main">
-        <div class="chat-header">
-            <span>💬</span>
-            <span>파티 채팅방</span>
+    {% if is_member %}
+      <div class="chat-input-area">
+        <div class="mention-input-wrap">
+          <input id="chat-message-input" class="input" type="text" placeholder="메시지를 입력하세요... (Enter 전송)">
+          <div id="mention-suggest" class="mention-suggest" style="display:none;"></div>
         </div>
+        <button id="chat-message-submit" class="btn btn-solid" type="button">전송</button>
+      </div>
+    {% else %}
+      <div style="padding:16px;color:var(--muted);text-align:center;">파티 참여자만 채팅할 수 있습니다.</div>
+    {% endif %}
+  </section>
+</section>
 
-        <div id="chat-log">
-            {% for msg in chat_messages %}
-                <div class="message-row {% if msg.user == request.user %}mine{% else %}other{% endif %}">
-                    <span class="message-sender">{{ msg.user.nickname|default:msg.user.username }}</span>
-                    <div class="message-bubble">{{ msg.content }}</div>
-                </div>
-            {% endfor %}
-            <div class="system-message">채팅방에 연결되었습니다.</div>
-        </div>
-
-        {% if is_member %}
-            <div class="chat-input-area">
-                <input id="chat-message-input" class="chat-input" type="text" placeholder="메시지를 입력하세요...">
-                <button id="chat-message-submit" class="send-btn">전송</button>
-            </div>
-        {% else %}
-            <div style="padding: 20px; text-align: center; color: var(--muted-color); background: var(--header-bg);">
-                파티에 참여해야 채팅할 수 있습니다.
-            </div>
-        {% endif %}
-    </div>
+<div id="host-transfer-modal" class="overlay">
+  <div class="overlay-card">
+    <h3 style="margin:0 0 8px;">방장을 넘기시겠습니까?</h3>
+    <p id="host-transfer-message" style="margin:0 0 16px;color:var(--muted);"></p>
+    <form id="host-transfer-form" method="post">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-solid" style="width:100%;margin-bottom:8px;">위임 확정</button>
+      <button type="button" class="btn btn-ghost" style="width:100%;" onclick="closeTransferModal()">취소</button>
+    </form>
+  </div>
 </div>
 
-<div id="party-end-modal" class="modal-overlay">
-    <div class="modal-box">
-        <div style="font-size: 40px; margin-bottom: 10px;">🚫</div>
-        <h2 style="color: white; margin-bottom: 10px;">파티가 종료되었습니다</h2>
-        <p style="color: var(--text-color); margin-bottom: 20px;">
-            방장이 파티를 해체했습니다.<br>로비로 이동합니다.
-        </p>
-        <button onclick="location.href='{% url 'party_list' %}'" style="background: var(--my-msg-bg); color: white; border: none; padding: 10px 24px; border-radius: 4px; cursor: pointer; font-weight: bold;">
-            확인
-        </button>
-    </div>
+<div id="party-end-modal" class="overlay">
+  <div class="overlay-card">
+    <h2 style="margin:0 0 10px;">파티가 종료되었습니다</h2>
+    <p style="color:var(--muted);margin:0 0 16px;">방장이 파티를 해체했습니다. 목록으로 이동합니다.</p>
+    <button onclick="location.href='{% url 'party_list' %}'" class="btn btn-solid" type="button">확인</button>
+  </div>
 </div>
 
-<div id="kick-modal" class="kick-modal-overlay">
-    <div class="kick-modal-box">
-        <div style="font-size: 60px; margin-bottom: 20px;">👋</div>
-        <h3 style="color: white; margin: 0 0 10px; font-size: 24px; font-weight: 800;">연결이 종료되었습니다</h3>
-        <p style="color: #b9bbbe; font-size: 15px; margin-bottom: 30px; line-height: 1.6;">
-            방장에 의해 파티에서 제외되었습니다.<br>
-            다른 파티를 찾아보세요!
-        </p>
-        
-        <button onclick="location.href='{% url 'party_list' %}'" class="kick-btn">
-            목록으로 돌아가기
-        </button>
-    </div>
+<div id="kick-modal" class="overlay">
+  <div class="overlay-card">
+    <h2 style="margin:0 0 10px;">연결이 종료되었습니다</h2>
+    <p style="color:var(--muted);margin:0 0 16px;">방장에 의해 파티에서 제외되었습니다.</p>
+    <button onclick="location.href='{% url 'party_list' %}'" class="btn btn-solid" type="button">목록으로 돌아가기</button>
+  </div>
 </div>
+{% endblock %}
 
+{% block extra_script %}
 <script>
-    // 0. CSRF 토큰 가져오는 헬퍼 함수
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
         }
-        return cookieValue;
+      }
     }
-    const csrftoken = getCookie('csrftoken');
+    return cookieValue;
+  }
 
-    // 1. 기본 설정
-    const partyId = "{{ party.id }}";
-    const currentUserId = "{{ request.user.id }}";
-    let isHost = "{{ is_host|yesno:'true,false' }}" === "true";
-    let isMember = "{{ is_member|yesno:'true,false' }}" === "true";
-    const partyActionContainer = document.getElementById('party-action-container');
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text == null ? '' : String(text);
+    return div.innerHTML;
+  }
 
-    function renderPartyAction(isHostNow, isMemberNow) {
-        if (!partyActionContainer) return;
+  const csrftoken = getCookie('csrftoken') || '';
+  const partyId = "{{ party.id }}";
+  const currentUserId = "{{ request.user.id }}";
+  const joinPolicy = "{{ party.join_policy }}";
+  const defaultTitle = document.title;
+  const currentUserNickname = "{{ request.user.nickname|default:''|escapejs }}";
+  const currentUsername = "{{ request.user.username|escapejs }}";
+  const mentionAliases = [currentUserNickname, currentUsername].filter(Boolean).map(v => v.toLowerCase());
+  const mentionNames = new Set([
+    {% for member in active_members %}
+      "{{ member.user.nickname|default:member.user.username|escapejs }}",
+    {% endfor %}
+  ]);
 
-        if (isHostNow) {
-            partyActionContainer.innerHTML = `
-                <form action="/parties/${partyId}/leave/" method="post" onsubmit="return confirm('파티에서 나가시겠습니까?\\n다음 참여자가 자동으로 방장이 됩니다.');">
-                    <input type="hidden" name="csrfmiddlewaretoken" value="${csrftoken}">
-                    <button type="submit" style="width: 100%; padding: 14px; background: #ed4245; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
-                        👋 방장 권한 넘기고 나가기
-                    </button>
-                </form>
-            `;
-            return;
-        }
+  let isHost = "{{ is_host|yesno:'true,false' }}" === 'true';
+  let isMember = "{{ is_member|yesno:'true,false' }}" === 'true';
+  let myJoinRequestStatus = "{{ my_join_request_status }}";
+  let myWaitlistRank = Number("{{ my_waitlist_rank|default:0 }}") || 0;
+  let currentCount = Number("{{ party.current_member_count }}");
+  let maxMembers = Number("{{ party.max_members }}");
+  let hiddenMessageCount = 0;
+  let hiddenMentionCount = 0;
+  let mentionFilterOnly = false;
+  let mentionState = null;
+  let mentionActiveIndex = -1;
+  let mentionCandidates = [];
+  let isTextComposing = false;
+  let ignoreEnterUntil = 0;
+  let lastSendAt = 0;
+  let suppressEnterKeyup = false;
 
-        if (isMemberNow) {
-            partyActionContainer.innerHTML = `
-                <form action="/parties/${partyId}/leave/" method="post" onsubmit="return confirm('정말 파티에서 나가시겠습니까?');">
-                    <input type="hidden" name="csrfmiddlewaretoken" value="${csrftoken}">
-                    <button type="submit" style="width: 100%; padding: 14px; background: #4f545c; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
-                        👋 파티 나가기
-                    </button>
-                </form>
-            `;
-            return;
-        }
+  const chatLog = document.getElementById('chat-log');
+  const partyActionContainer = document.getElementById('party-action-container');
+  const messageCountEl = document.getElementById('message-count');
+  const mentionFilterBtn = document.getElementById('mention-filter-toggle');
+  const mentionSuggest = document.getElementById('mention-suggest');
+  const requestPanel = document.getElementById('request-panel');
+  const requestList = document.getElementById('request-list');
+  const pendingRequestCount = document.getElementById('pending-request-count');
+  const waitlistCountEl = document.getElementById('waitlist-count');
+  const myWaitlistRankEl = document.getElementById('my-waitlist-rank');
+  const waitlistListEl = document.getElementById('waitlist-list');
+  const pinnedNoticeEl = document.getElementById('pinned-notice');
+  const pinnedContentEl = document.getElementById('pinned-content');
+  const pinnedMetaEl = document.getElementById('pinned-meta');
+  const pinnedClearBtn = document.getElementById('pinned-clear-btn');
 
-        partyActionContainer.innerHTML = `
-            <form action="/parties/${partyId}/join/" method="post">
-                <input type="hidden" name="csrfmiddlewaretoken" value="${csrftoken}">
-                <button type="submit" style="width: 100%; padding: 14px; background: #3ba55c; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
-                    🚀 파티 참여하기
-                </button>
-            </form>
-        `;
+  function isImeComposing(e) {
+    return isTextComposing || (e && (e.isComposing || e.keyCode === 229));
+  }
+
+  function parseFiniteNumber(value, fallback) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function progressWidthValue(count, max) {
+    const safeCount = parseFiniteNumber(count, 0);
+    const safeMax = parseFiniteNumber(max, 0);
+    if (safeMax <= 0 || safeCount <= 0) return '0%';
+    const pct = (safeCount / safeMax) * 100;
+    // 1명이어도 bar가 보이도록 최소 폭을 보장
+    return `${Math.max(12, Math.min(100, pct))}%`;
+  }
+
+  function syncProgressBar(countOverride, maxOverride) {
+    const countEl = document.getElementById('member-count');
+    const maxEl = document.getElementById('max-members');
+    const barEl = document.getElementById('progress-bar');
+    const percentEl = document.getElementById('member-progress-percent');
+
+    currentCount = parseFiniteNumber(
+      countOverride,
+      parseFiniteNumber(countEl ? countEl.textContent : currentCount, currentCount),
+    );
+    maxMembers = parseFiniteNumber(
+      maxOverride,
+      parseFiniteNumber(maxEl ? maxEl.textContent : maxMembers, maxMembers),
+    );
+
+    if (countEl) countEl.textContent = currentCount;
+    if (maxEl) maxEl.textContent = maxMembers;
+
+    if (barEl) {
+      barEl.style.width = progressWidthValue(currentCount, maxMembers);
+      barEl.style.minWidth = currentCount > 0 ? '10px' : '0';
+    }
+    if (percentEl) {
+      const pct = maxMembers > 0 ? Math.round((currentCount / maxMembers) * 100) : 0;
+      percentEl.textContent = `${Math.max(0, Math.min(100, pct))}%`;
+    }
+  }
+
+  function updateMessageCount() {
+    const count = chatLog.querySelectorAll('.message-row').length;
+    if (messageCountEl) messageCountEl.textContent = `메시지 ${count}개`;
+  }
+
+  function appendSystemMessage(message, color) {
+    const el = document.createElement('div');
+    el.className = 'system-message';
+    el.textContent = message;
+    if (color) el.style.color = color;
+    chatLog.appendChild(el);
+    chatLog.scrollTop = chatLog.scrollHeight;
+  }
+
+  function containsMentionForMe(message) {
+    if (!message) return false;
+    return mentionAliases.some(alias => message.toLowerCase().includes(`@${alias}`));
+  }
+
+  function updateHiddenTitle() {
+    if (hiddenMentionCount > 0) {
+      document.title = `(@${hiddenMentionCount}) ${defaultTitle}`;
+      return;
+    }
+    if (hiddenMessageCount > 0) {
+      document.title = `(${hiddenMessageCount}) ${defaultTitle}`;
+      return;
+    }
+    document.title = defaultTitle;
+  }
+
+  function applyMentionFilter() {
+    const rows = chatLog.querySelectorAll('.message-row');
+    rows.forEach(row => {
+      if (!mentionFilterOnly) {
+        row.style.display = '';
+        return;
+      }
+      row.style.display = row.classList.contains('mention-me') ? '' : 'none';
+    });
+    if (mentionFilterBtn) {
+      mentionFilterBtn.classList.toggle('active', mentionFilterOnly);
+      mentionFilterBtn.textContent = mentionFilterOnly ? '멘션만 보는 중' : '멘션만 보기';
+    }
+  }
+
+  function decorateExistingMentions() {
+    chatLog.querySelectorAll('.message-row[data-chat-message="1"]').forEach(row => {
+      const bubble = row.querySelector('.message-bubble');
+      if (bubble && containsMentionForMe(bubble.textContent || '')) {
+        row.classList.add('mention-me');
+      }
+    });
+    applyMentionFilter();
+  }
+
+  function appendChatMessage({ messageId, sender, senderId, message, mentionUserIds }) {
+    const row = document.createElement('div');
+    row.className = `message-row ${String(senderId) === String(currentUserId) ? 'mine' : 'other'}`;
+    row.dataset.chatMessage = '1';
+    if (messageId) row.dataset.messageId = String(messageId);
+
+    const senderEl = document.createElement('span');
+    senderEl.className = 'message-sender';
+    senderEl.textContent = sender || '알 수 없음';
+
+    const contentWrap = document.createElement('div');
+    contentWrap.className = 'message-content';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'message-bubble';
+    bubble.textContent = (message || '').replace(/\r?\n/g, '');
+
+    contentWrap.appendChild(bubble);
+    if (isHost && messageId) {
+      const pinBtn = document.createElement('button');
+      pinBtn.type = 'button';
+      pinBtn.className = 'pin-trigger';
+      pinBtn.dataset.messageId = String(messageId);
+      pinBtn.textContent = '공지 고정';
+      contentWrap.appendChild(pinBtn);
     }
 
-    const chatLog = document.querySelector('#chat-log');
+    const mentionByPayload = Array.isArray(mentionUserIds) && mentionUserIds.some(id => String(id) === String(currentUserId));
+    const mentionByText = containsMentionForMe(message || '');
+    const mentionForMe = mentionByPayload || mentionByText;
+    if (mentionForMe) row.classList.add('mention-me');
+
+    row.appendChild(senderEl);
+    row.appendChild(contentWrap);
+    chatLog.appendChild(row);
     chatLog.scrollTop = chatLog.scrollHeight;
 
-    const params = new URLSearchParams(window.location.search);
-    const kickedUserName = params.get('kicked_user_name');
-    if (kickedUserName) {
-        const sysHTML = `<div class="system-message" style="color:#ed4245;">🚫 ${kickedUserName}님이 강제 추방되었습니다.</div>`;
-        chatLog.insertAdjacentHTML('beforeend', sysHTML);
-        chatLog.scrollTop = chatLog.scrollHeight;
-
-        params.delete('kicked_user_name');
-        const newQuery = params.toString();
-        const newUrl = `${window.location.pathname}${newQuery ? `?${newQuery}` : ''}`;
-        window.history.replaceState({}, '', newUrl);
+    if (document.hidden && String(senderId) !== String(currentUserId)) {
+      if (mentionForMe) {
+        hiddenMentionCount += 1;
+      } else {
+        hiddenMessageCount += 1;
+      }
+      updateHiddenTitle();
     }
 
-    const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-    const chatSocket = new WebSocket(protocol + window.location.host + '/ws/chat/' + partyId + '/');
+    updateMessageCount();
+    applyMentionFilter();
+  }
 
-    // 2. 메시지 수신 처리
-    chatSocket.onmessage = function(e) {
-        const data = JSON.parse(e.data);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      hiddenMessageCount = 0;
+      hiddenMentionCount = 0;
+      updateHiddenTitle();
+    }
+  });
 
-        // (A) 일반 채팅 메시지
-        if (data.type === 'chat_message') {
-            const isMe = (String(data.sender_id) === String(currentUserId));
-            const senderName = data.sender || '알 수 없음';
-            const msgHTML = `
-                <div class="message-row ${isMe ? 'mine' : 'other'}">
-                    <span class="message-sender">${senderName}</span>
-                    <div class="message-bubble">${data.message}</div>
-                </div>
-            `;
-            chatLog.insertAdjacentHTML('beforeend', msgHTML);
-            chatLog.scrollTop = chatLog.scrollHeight;
-        } 
-        // (B) 시스템 메시지
-        else if (data.type === 'system_message') {
-            const sysHTML = `<div class="system-message">${data.message}</div>`;
-            chatLog.insertAdjacentHTML('beforeend', sysHTML);
-            chatLog.scrollTop = chatLog.scrollHeight;
-        }
-        // (C) 인원수 업데이트
-        else if (data.type === 'count_update') {
-            const countEl = document.querySelector('#member-count');
-            const barEl = document.querySelector('#progress-bar');
-            if (countEl) countEl.innerText = data.count;
-            if (barEl) {
-                const max = {{ party.max_members }};
-                const pct = (data.count / max) * 100;
-                barEl.style.width = pct + '%';
-            }
-        }
-        // (D) 멤버 리스트 업데이트
-        else if (data.type === 'member_list_update') {
-            const listContainer = document.getElementById('member-list-container');
-            if (listContainer) {
-                listContainer.innerHTML = ''; 
+  function renderPartyAction() {
+    if (!partyActionContainer) return;
 
-                const me = data.members.find(member => String(member.id) === String(currentUserId));
-                isMember = Boolean(me);
-                isHost = Boolean(me && me.is_host);
-                renderPartyAction(isHost, isMember);
+    if (isHost) {
+      partyActionContainer.innerHTML = `
+        <form action="/parties/${partyId}/leave/" method="post" onsubmit="return confirm('파티에서 나가시겠습니까?\\n다음 참여자에게 방장 권한이 위임됩니다.');">
+          <input type="hidden" name="csrfmiddlewaretoken" value="${escapeHtml(csrftoken)}">
+          <button type="submit" class="btn" style="width:100%;background:#ff5c5c;border-color:#ff5c5c;">방장 권한 넘기고 나가기</button>
+        </form>
+      `;
+      return;
+    }
 
-                data.members.forEach(member => {
-                    const isMe = (String(member.id) === String(currentUserId));
-                    
-                    // 강퇴 버튼 HTML (자바스크립트에서 폼 생성)
-                    let kickButtonHtml = '';
-                    if (isHost && !member.is_host) {
-                        kickButtonHtml = `
-                            <form action="/parties/${partyId}/members/${member.id}/kick/" method="post" style="display:inline;" onsubmit="return confirm('정말 ${member.nickname}님을 강퇴하시겠습니까?');">
-                                <input type="hidden" name="csrfmiddlewaretoken" value="${csrftoken}">
-                                <button type="submit" style="background: none; border: none; color: #ed4245; cursor: pointer; font-size: 18px; padding: 0 5px;" title="강퇴하기">×</button>
-                            </form>
-                        `;
-                    }
+    if (isMember) {
+      partyActionContainer.innerHTML = `
+        <form action="/parties/${partyId}/leave/" method="post" onsubmit="return confirm('정말 파티에서 나가시겠습니까?');">
+          <input type="hidden" name="csrfmiddlewaretoken" value="${escapeHtml(csrftoken)}">
+          <button type="submit" class="btn btn-ghost" style="width:100%;">파티 나가기</button>
+        </form>
+      `;
+      return;
+    }
 
-                    let html = `
-                    <div class="member-item">
-                        <span style="color: #dcddde; font-weight: 500;">
-                            ${member.nickname}
-                            ${member.is_host ? '👑' : ''}
-                            ${isMe ? '<span style="font-size: 12px; color: #3ba55c; margin-left: 5px;">(나)</span>' : ''}
-                        </span>
-                        ${kickButtonHtml}
-                    </div>`;
-                    
-                    listContainer.insertAdjacentHTML('beforeend', html);
-                });
-            }
-        }
-        // ✅ (E) 강퇴 신호 처리 (여기만 수정했습니다!)
-        else if (data.type === 'user_kicked') {
-            // 내가 강퇴당한 경우
-            if (String(data.kicked_user_id) === String(currentUserId)) {
-                // 기존 alert 대신 예쁜 모달 띄우기
-                const modal = document.getElementById('kick-modal');
-                modal.style.display = 'flex';
-                document.body.style.overflow = 'hidden'; // 뒷배경 스크롤 막기
-            } 
-            // 다른 사람이 강퇴당한 경우
-            else {
-                const sysHTML = `<div class="system-message" style="color:#ed4245;">🚫 ${data.kicked_user_name}님이 강제 추방되었습니다.</div>`;
-                chatLog.insertAdjacentHTML('beforeend', sysHTML);
-                chatLog.scrollTop = chatLog.scrollHeight;
-            }
-        }
-        // (F) 파티 해체 처리
-        else if (data.type === 'party_killed') {
-            if (!isHost) {
-                document.getElementById('party-end-modal').style.display = 'flex';
-            }
-        }
-    };
+    if (joinPolicy === 'APPROVAL' && myJoinRequestStatus === 'PENDING') {
+      partyActionContainer.innerHTML = `
+        <form action="/parties/${partyId}/join/cancel/" method="post">
+          <input type="hidden" name="csrfmiddlewaretoken" value="${escapeHtml(csrftoken)}">
+          <button type="submit" class="btn btn-ghost" style="width:100%;">신청 취소</button>
+        </form>
+      `;
+      return;
+    }
 
-    chatSocket.onclose = function(e) { console.error('Socket closed'); };
+    if (myWaitlistRank > 0) {
+      partyActionContainer.innerHTML = `<button type="button" class="btn btn-ghost" style="width:100%;cursor:not-allowed;" disabled>대기열 ${myWaitlistRank}번</button>`;
+      return;
+    }
 
-    document.addEventListener('submit', async function (e) {
-        const form = e.target;
-        if (!(form instanceof HTMLFormElement)) return;
-        if (!form.action.includes('/kick/')) return;
+    if (joinPolicy !== 'APPROVAL') {
+      if (currentCount >= maxMembers) {
+        partyActionContainer.innerHTML = `
+          <form action="/parties/${partyId}/join/" method="post">
+            <input type="hidden" name="csrfmiddlewaretoken" value="${escapeHtml(csrftoken)}">
+            <button type="submit" class="btn btn-solid" style="width:100%;">대기열 참가</button>
+          </form>
+        `;
+        return;
+      }
+    }
 
-        e.preventDefault();
+    const joinLabel = joinPolicy === 'APPROVAL' ? '참가 신청하기' : '파티 참여하기';
+    partyActionContainer.innerHTML = `
+      <form action="/parties/${partyId}/join/" method="post">
+        <input type="hidden" name="csrfmiddlewaretoken" value="${escapeHtml(csrftoken)}">
+        <button type="submit" class="btn btn-solid" style="width:100%;">${joinLabel}</button>
+      </form>
+    `;
+  }
 
-        try {
-            const response = await fetch(form.action, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrftoken,
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                credentials: 'same-origin'
-            });
+  function renderRequestItem(req) {
+    return `
+      <div class="request-item" id="join-request-${req.id}">
+        <div style="font-size:.92rem;">${escapeHtml(req.nickname)}</div>
+        <div class="request-actions">
+          <form action="/parties/${partyId}/join-requests/${req.id}/approve/" method="post">
+            <input type="hidden" name="csrfmiddlewaretoken" value="${escapeHtml(csrftoken)}">
+            <button type="submit" class="btn btn-solid">수락</button>
+          </form>
+          <form action="/parties/${partyId}/join-requests/${req.id}/reject/" method="post">
+            <input type="hidden" name="csrfmiddlewaretoken" value="${escapeHtml(csrftoken)}">
+            <button type="submit" class="btn btn-ghost">거절</button>
+          </form>
+        </div>
+      </div>
+    `;
+  }
 
-            if (!response.ok) {
-                console.error('강퇴 요청 실패:', response.status);
-            }
-        } catch (err) {
-            console.error('강퇴 요청 중 오류:', err);
-        }
+  function syncRequestPanelEmpty() {
+    if (!requestList) return;
+    const hasItems = requestList.querySelectorAll('.request-item').length > 0;
+    let emptyEl = document.getElementById('request-empty');
+    if (!hasItems && !emptyEl) {
+      requestList.insertAdjacentHTML('beforeend', '<p id="request-empty" style="color:var(--muted);font-size:.84rem;margin:8px 0 0;">대기 중인 신청이 없습니다.</p>');
+    }
+    if (hasItems && emptyEl) emptyEl.remove();
+  }
+
+  function updateRequestPanelVisibility() {
+    if (!requestPanel) return;
+    requestPanel.style.display = (isHost && joinPolicy === 'APPROVAL') ? 'block' : 'none';
+  }
+
+  function renderWaitlist(entries, count) {
+    if (waitlistCountEl) waitlistCountEl.textContent = `${count}명`;
+
+    const mine = (entries || []).find(item => String(item.user_id) === String(currentUserId));
+    myWaitlistRank = mine ? Number(mine.rank) : 0;
+
+    if (myWaitlistRankEl) {
+      myWaitlistRankEl.textContent = myWaitlistRank > 0
+        ? `내 대기 순번: ${myWaitlistRank}번`
+        : '내 대기 상태: 미등록';
+    }
+
+    if (waitlistListEl) {
+      waitlistListEl.innerHTML = '';
+      if (!entries || entries.length === 0) {
+        waitlistListEl.innerHTML = '<p id=\"waitlist-empty\" style=\"margin:8px 0 0;color:var(--muted);font-size:.84rem;\">대기자가 없습니다.</p>';
+      } else {
+        entries.forEach(item => {
+          waitlistListEl.insertAdjacentHTML(
+            'beforeend',
+            `<div class=\"wait-item\" data-user-id=\"${item.user_id}\">${item.rank}. ${escapeHtml(item.nickname)}</div>`
+          );
+        });
+      }
+    }
+
+    renderPartyAction();
+  }
+
+  function applyPartyMeta(party) {
+    if (!party) return;
+    const modeEl = document.getElementById('party-mode-label');
+    const descEl = document.getElementById('party-desc-label');
+    const micEl = document.getElementById('mic-badge');
+    const joinPolicyEl = document.getElementById('join-policy-badge');
+    const statusEl = document.getElementById('party-status');
+
+    if (modeEl) modeEl.textContent = party.title || party.mode || '';
+    if (descEl) descEl.textContent = party.description || '파티 설명이 없습니다.';
+    if (statusEl) statusEl.textContent = party.status || '';
+    if (party.current_count !== undefined) {
+      currentCount = parseFiniteNumber(party.current_count, currentCount);
+    }
+
+    maxMembers = parseFiniteNumber(party.max_members, maxMembers);
+    syncProgressBar(currentCount, maxMembers);
+    if (micEl) micEl.style.display = party.mic_required ? '' : 'none';
+    if (joinPolicyEl) joinPolicyEl.style.display = party.join_policy === 'APPROVAL' ? '' : 'none';
+    renderPartyAction();
+  }
+
+  function applyPinnedNotice(pinned) {
+    if (!pinned || !pinned.content) {
+      if (pinnedNoticeEl) pinnedNoticeEl.style.display = 'none';
+      if (pinnedContentEl) pinnedContentEl.textContent = '';
+      if (pinnedMetaEl) pinnedMetaEl.textContent = '';
+      return;
+    }
+
+    if (pinnedNoticeEl) pinnedNoticeEl.style.display = '';
+    if (pinnedContentEl) pinnedContentEl.textContent = pinned.content || '';
+    if (pinnedMetaEl) pinnedMetaEl.textContent = `작성자: ${pinned.sender || '시스템'}`;
+  }
+
+  function getMentionQueryState(text, caretIndex) {
+    const left = text.slice(0, caretIndex);
+    const atPos = left.lastIndexOf('@');
+    if (atPos < 0) return null;
+
+    const prefix = left.slice(atPos + 1);
+    if (prefix.includes(' ') || prefix.includes('\n')) return null;
+    if (prefix.length > 24) return null;
+    return { start: atPos, end: caretIndex, query: prefix };
+  }
+
+  function hideMentionSuggest() {
+    mentionState = null;
+    mentionActiveIndex = -1;
+    if (mentionSuggest) {
+      mentionSuggest.innerHTML = '';
+      mentionSuggest.style.display = 'none';
+    }
+  }
+
+  function renderMentionSuggest() {
+    if (!mentionSuggest || !mentionState || mentionCandidates.length === 0) {
+      hideMentionSuggest();
+      return;
+    }
+
+    mentionSuggest.innerHTML = '';
+    mentionCandidates.forEach((name, idx) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `mention-option${idx === mentionActiveIndex ? ' active' : ''}`;
+      btn.dataset.name = name;
+      btn.textContent = `@${name}`;
+      mentionSuggest.appendChild(btn);
     });
+    mentionSuggest.style.display = '';
+  }
 
-    // 3. 채팅 입력
-    const inputDom = document.querySelector('#chat-message-input');
-    const submitBtn = document.querySelector('#chat-message-submit');
+  function refreshMentionCandidates(rawMembers) {
+    mentionNames.clear();
+    (rawMembers || []).forEach(member => {
+      if (member.nickname) mentionNames.add(String(member.nickname));
+    });
+  }
 
-    if (inputDom && submitBtn) {
-        inputDom.focus();
-        inputDom.onkeyup = function(e) { if (e.keyCode === 13) submitBtn.click(); };
-        submitBtn.onclick = function(e) {
-            const message = inputDom.value;
-            if (message.trim() !== "") {
-                chatSocket.send(JSON.stringify({'message': message}));
-                inputDom.value = '';
-            }
-        };
+  function updateMentionSuggestFromInput(inputDom) {
+    if (!inputDom || !mentionSuggest) return;
+    const state = getMentionQueryState(inputDom.value, inputDom.selectionStart || 0);
+    if (!state) {
+      hideMentionSuggest();
+      return;
     }
+
+    const query = state.query.toLowerCase();
+    const names = Array.from(mentionNames).filter(Boolean);
+    mentionCandidates = names
+      .filter(name => name.toLowerCase().startsWith(query))
+      .slice(0, 8);
+    mentionState = state;
+    mentionActiveIndex = mentionCandidates.length ? 0 : -1;
+    renderMentionSuggest();
+  }
+
+  function applyMentionSelection(inputDom, name) {
+    if (!inputDom || !mentionState) return;
+
+    const left = inputDom.value.slice(0, mentionState.start);
+    const right = inputDom.value.slice(mentionState.end);
+    const replacement = `@${name} `;
+    inputDom.value = `${left}${replacement}${right}`;
+
+    const nextPos = (left + replacement).length;
+    inputDom.focus();
+    inputDom.setSelectionRange(nextPos, nextPos);
+    hideMentionSuggest();
+  }
+
+  function syncPinButtonsForHost() {
+    if (pinnedClearBtn) {
+      pinnedClearBtn.style.display = isHost ? '' : 'none';
+    }
+    chatLog.querySelectorAll('.message-row[data-chat-message="1"]').forEach(row => {
+      const messageId = row.dataset.messageId;
+      const content = row.querySelector('.message-content');
+      if (!content || !messageId) return;
+
+      const existingBtn = row.querySelector('.pin-trigger');
+      if (isHost && !existingBtn) {
+        const pinBtn = document.createElement('button');
+        pinBtn.type = 'button';
+        pinBtn.className = 'pin-trigger';
+        pinBtn.dataset.messageId = messageId;
+        pinBtn.textContent = '공지 고정';
+        content.appendChild(pinBtn);
+      }
+      if (!isHost && existingBtn) {
+        existingBtn.remove();
+      }
+    });
+  }
+
+  const copyInviteBtn = document.getElementById('copy-invite');
+  if (copyInviteBtn) {
+    copyInviteBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        copyInviteBtn.textContent = '복사 완료';
+        setTimeout(() => { copyInviteBtn.textContent = '초대 링크 복사'; }, 1400);
+      } catch (_) {
+        copyInviteBtn.textContent = '복사 실패';
+      }
+    });
+  }
+
+  function openTransferModal(userId, userName) {
+    const modal = document.getElementById('host-transfer-modal');
+    const form = document.getElementById('host-transfer-form');
+    const msg = document.getElementById('host-transfer-message');
+    msg.textContent = `${userName}님에게 방장 권한을 넘깁니다.`;
+    form.action = `/parties/${partyId}/members/${userId}/transfer-host/`;
+    modal.style.display = 'flex';
+  }
+
+  function closeTransferModal() {
+    document.getElementById('host-transfer-modal').style.display = 'none';
+  }
+
+  document.addEventListener('click', (e) => {
+    const mentionOption = e.target.closest('.mention-option');
+    if (mentionOption) {
+      const inputDom = document.getElementById('chat-message-input');
+      applyMentionSelection(inputDom, mentionOption.dataset.name || '');
+      return;
+    }
+
+    const pinTrigger = e.target.closest('.pin-trigger');
+    if (pinTrigger) {
+      if (!isHost) return;
+      const messageId = pinTrigger.dataset.messageId;
+      if (!messageId) return;
+
+      fetch(`/parties/${partyId}/pin/${messageId}/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrftoken,
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        credentials: 'same-origin',
+      })
+        .then(async (res) => {
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.ok) {
+            appendSystemMessage((data && data.error) || '공지 고정에 실패했습니다.', '#ffb5a9');
+            return;
+          }
+          applyPinnedNotice(data.pinned);
+          appendSystemMessage('📌 공지가 고정되었습니다.', '#9bdcff');
+        })
+        .catch(() => appendSystemMessage('공지 고정 요청 중 오류가 발생했습니다.', '#ffb5a9'));
+      return;
+    }
+
+    const trigger = e.target.closest('.transfer-trigger');
+    if (!trigger) return;
+    openTransferModal(trigger.dataset.userId, trigger.dataset.userName);
+  });
+
+  const hostTransferForm = document.getElementById('host-transfer-form');
+  if (hostTransferForm) {
+    hostTransferForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      try {
+        const res = await fetch(hostTransferForm.action, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': csrftoken,
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          credentials: 'same-origin',
+        });
+
+        if (!res.ok) {
+          appendSystemMessage('방장 위임 처리에 실패했습니다.', '#ffb5a9');
+          return;
+        }
+
+        const data = await res.json();
+        closeTransferModal();
+        appendSystemMessage(`👑 ${data.transferred_user_name}님이 새로운 방장이 되었습니다.`, '#9bdcff');
+      } catch (_) {
+        appendSystemMessage('방장 위임 요청 중 오류가 발생했습니다.', '#ffb5a9');
+      }
+    });
+  }
+
+  if (pinnedClearBtn) {
+    pinnedClearBtn.addEventListener('click', async () => {
+      try {
+        const res = await fetch(`/parties/${partyId}/pin/clear/`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': csrftoken,
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          credentials: 'same-origin',
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) {
+          appendSystemMessage((data && data.error) || '공지 해제에 실패했습니다.', '#ffb5a9');
+          return;
+        }
+
+        applyPinnedNotice(null);
+        appendSystemMessage('📌 고정 공지가 해제되었습니다.', '#9bdcff');
+      } catch (_) {
+        appendSystemMessage('공지 해제 요청 중 오류가 발생했습니다.', '#ffb5a9');
+      }
+    });
+  }
+
+  const partySettingsForm = document.getElementById('party-settings-form');
+  if (partySettingsForm) {
+    partySettingsForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(partySettingsForm);
+      if (!formData.has('mic_required')) {
+        formData.set('mic_required', 'off');
+      }
+
+      try {
+        const res = await fetch(partySettingsForm.action, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': csrftoken,
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          credentials: 'same-origin',
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          appendSystemMessage((data.errors && data.errors.join(' ')) || '설정 저장에 실패했습니다.', '#ffb5a9');
+          return;
+        }
+
+        appendSystemMessage('⚙️ 파티 설정이 저장되었습니다.', '#9bdcff');
+        applyPartyMeta({
+          mode: data.party.mode,
+          description: data.party.description,
+          mic_required: data.party.mic_required,
+          max_members: data.party.max_members,
+          status: data.party.status,
+          join_policy: joinPolicy,
+        });
+      } catch (_) {
+        appendSystemMessage('설정 저장 요청 중 오류가 발생했습니다.', '#ffb5a9');
+      }
+    });
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('requested') === '1') {
+    appendSystemMessage('참가 신청이 접수되었습니다. 방장 수락 시 입장되며, 정원 초과 시 대기열로 등록됩니다.', '#9bdcff');
+  }
+  if (params.get('request_cancelled') === '1') {
+    appendSystemMessage('참가 신청을 취소했습니다.', '#9bdcff');
+  }
+  if (params.get('full') === '1') {
+    appendSystemMessage('현재 파티 정원이 가득 찼습니다.', '#ffb5a9');
+  }
+  if (params.get('approve_failed') === 'full') {
+    appendSystemMessage('정원이 가득 차서 신청을 수락할 수 없습니다.', '#ffb5a9');
+  }
+  if (params.get('moved_waitlist') === '1') {
+    appendSystemMessage('신청이 수락되어 대기열에 등록되었습니다.', '#9bdcff');
+  }
+  if (params.get('waitlisted') === '1') {
+    const rank = params.get('rank');
+    appendSystemMessage(`대기열에 등록되었습니다.${rank ? ` (현재 ${rank}번)` : ''}`, '#9bdcff');
+  }
+  if (params.get('settings_updated') === '1') {
+    appendSystemMessage('⚙️ 파티 설정이 저장되었습니다.', '#9bdcff');
+  }
+  if (params.get('settings_failed') === '1') {
+    appendSystemMessage('파티 설정 저장에 실패했습니다.', '#ffb5a9');
+  }
+  const kickedUserName = params.get('kicked_user_name');
+  if (kickedUserName) {
+    appendSystemMessage(`🚫 ${kickedUserName}님이 강제 추방되었습니다.`, '#ff8d8d');
+  }
+  const hostTransferredName = params.get('host_transferred_name');
+  if (hostTransferredName) {
+    appendSystemMessage(`👑 ${hostTransferredName}님이 새로운 방장이 되었습니다.`, '#9bdcff');
+  }
+  ['requested', 'request_cancelled', 'full', 'approve_failed', 'moved_waitlist', 'waitlisted', 'rank', 'settings_updated', 'settings_failed', 'kicked_user_name', 'host_transferred_name'].forEach(k => params.delete(k));
+  const nextQuery = params.toString();
+  history.replaceState({}, '', `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}`);
+
+  if (mentionFilterBtn) {
+    mentionFilterBtn.addEventListener('click', () => {
+      mentionFilterOnly = !mentionFilterOnly;
+      applyMentionFilter();
+    });
+  }
+
+  chatLog.scrollTop = chatLog.scrollHeight;
+  updateMessageCount();
+  updateRequestPanelVisibility();
+  syncProgressBar(currentCount, maxMembers);
+  requestAnimationFrame(() => {
+    syncProgressBar(currentCount, maxMembers);
+  });
+  applyPinnedNotice(
+    {% if pinned_notice %}
+      { message_id: "{{ pinned_notice.message_id }}", content: "{{ pinned_notice.content|escapejs }}", sender: "{{ pinned_notice.sender|escapejs }}" }
+    {% else %}
+      null
+    {% endif %}
+  );
+  decorateExistingMentions();
+  syncPinButtonsForHost();
+
+  const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+  const chatSocket = new WebSocket(protocol + window.location.host + '/ws/chat/' + partyId + '/');
+
+  chatSocket.onmessage = function (e) {
+    const data = JSON.parse(e.data);
+
+    if (data.type === 'chat_message') {
+      appendChatMessage({
+        messageId: data.message_id,
+        sender: data.sender,
+        senderId: data.sender_id,
+        message: data.message,
+        mentionUserIds: data.mention_user_ids || [],
+      });
+      return;
+    }
+
+    if (data.type === 'chat_error') {
+      appendSystemMessage(data.message || '채팅 전송에 실패했습니다.', '#ffb5a9');
+      return;
+    }
+
+    if (data.type === 'system_message') {
+      if (
+        (data.code === 'host_transferred' || data.code === 'party_settings_updated')
+        && String(data.actor_user_id) === String(currentUserId)
+      ) {
+        return;
+      }
+      appendSystemMessage(data.message || '시스템 메시지');
+      return;
+    }
+
+    if (data.type === 'count_update') {
+      const statusEl = document.getElementById('party-status');
+      currentCount = parseFiniteNumber(data.count, currentCount);
+      syncProgressBar(currentCount, maxMembers);
+      if (statusEl) statusEl.textContent = currentCount >= maxMembers ? '마감' : '모집중';
+      renderPartyAction();
+      return;
+    }
+
+    if (data.type === 'member_list_update') {
+      const listContainer = document.getElementById('member-list-container');
+      if (!listContainer) return;
+
+      listContainer.innerHTML = '';
+      const me = data.members.find(member => String(member.id) === String(currentUserId));
+      isMember = Boolean(me);
+      isHost = Boolean(me && me.is_host);
+      if (isMember) myWaitlistRank = 0;
+      syncProgressBar((data.members || []).length, maxMembers);
+      renderPartyAction();
+      updateRequestPanelVisibility();
+      refreshMentionCandidates(data.members || []);
+      syncPinButtonsForHost();
+
+      data.members.forEach(member => {
+        const isMe = String(member.id) === String(currentUserId);
+        let actions = '';
+        if (isHost && !member.is_host) {
+          actions = `
+            <div class="member-actions">
+              <button type="button" class="icon-btn transfer-trigger" data-user-id="${member.id}" data-user-name="${escapeHtml(member.nickname)}">위임</button>
+              <form action="/parties/${partyId}/members/${member.id}/kick/" method="post" onsubmit="return confirm('정말 ${escapeHtml(member.nickname)}님을 강퇴하시겠습니까?');">
+                <input type="hidden" name="csrfmiddlewaretoken" value="${escapeHtml(csrftoken)}">
+                <button type="submit" class="icon-btn warn">강퇴</button>
+              </form>
+            </div>
+          `;
+        }
+
+        listContainer.insertAdjacentHTML(
+          'beforeend',
+          `<div class="member-item"><span>${escapeHtml(member.nickname)} ${member.is_host ? '👑' : ''} ${isMe ? '<span style="color:var(--ok);font-size:.8rem;">(나)</span>' : ''}</span>${actions}</div>`
+        );
+      });
+      return;
+    }
+
+    if (data.type === 'waitlist_update') {
+      renderWaitlist(data.entries || [], Number(data.count || 0));
+      return;
+    }
+
+    if (data.type === 'party_meta_update') {
+      applyPartyMeta(data.party);
+      return;
+    }
+
+    if (data.type === 'pinned_notice_update') {
+      applyPinnedNotice(data.pinned || null);
+      return;
+    }
+
+    if (data.type === 'join_request_update') {
+      if (!isHost || joinPolicy !== 'APPROVAL') return;
+      if (!requestList) return;
+
+      if (pendingRequestCount) pendingRequestCount.textContent = `${data.pending_count || 0}건`;
+      const req = data.request;
+      const exists = document.getElementById(`join-request-${req.id}`);
+
+      if (data.action === 'created' && !exists) {
+        const emptyEl = document.getElementById('request-empty');
+        if (emptyEl) emptyEl.remove();
+        requestList.insertAdjacentHTML('beforeend', renderRequestItem(req));
+      }
+
+      if ((data.action === 'approved' || data.action === 'rejected' || data.action === 'queued' || data.action === 'cancelled') && exists) {
+        exists.remove();
+      }
+
+      syncRequestPanelEmpty();
+      return;
+    }
+
+    if (data.type === 'join_request_result') {
+      if (String(data.target_user_id) !== String(currentUserId)) return;
+      myJoinRequestStatus = data.status;
+      const positive = data.status === 'APPROVED' || data.status === 'WAITLISTED' || data.status === 'CANCELLED';
+      appendSystemMessage(data.message || '신청 상태가 변경되었습니다.', positive ? '#9bdcff' : '#ffb5a9');
+
+      if (data.status === 'APPROVED') {
+        setTimeout(() => window.location.reload(), 700);
+      } else {
+        renderPartyAction();
+      }
+      return;
+    }
+
+    if (data.type === 'user_kicked') {
+      if (String(data.kicked_user_id) === String(currentUserId)) {
+        document.getElementById('kick-modal').style.display = 'flex';
+      } else {
+        appendSystemMessage(`🚫 ${data.kicked_user_name}님이 강제 추방되었습니다.`, '#ff8d8d');
+      }
+      return;
+    }
+
+    if (data.type === 'party_killed') {
+      if (!isHost) {
+        document.getElementById('party-end-modal').style.display = 'flex';
+      }
+    }
+  };
+
+  const inputDom = document.getElementById('chat-message-input');
+  const submitBtn = document.getElementById('chat-message-submit');
+  const sendChatMessage = () => {
+    if (!inputDom || !submitBtn) return;
+    if (isTextComposing || Date.now() < ignoreEnterUntil) return;
+
+    const now = Date.now();
+    if (now - lastSendAt < 120) return;
+
+    const message = inputDom.value.replace(/\r?\n/g, '').trim();
+    if (!message) return;
+
+    lastSendAt = now;
+    chatSocket.send(JSON.stringify({ message }));
+    inputDom.value = '';
+    hideMentionSuggest();
+  };
+
+  if (inputDom && submitBtn) {
+    inputDom.focus();
+    inputDom.addEventListener('compositionstart', () => {
+      isTextComposing = true;
+      ignoreEnterUntil = Date.now() + 350;
+    });
+    inputDom.addEventListener('compositionend', () => {
+      isTextComposing = false;
+      // 일부 IME/브라우저는 조합 확정 직후 Enter keydown이 추가 발생함.
+      ignoreEnterUntil = Date.now() + 250;
+      updateMentionSuggestFromInput(inputDom);
+    });
+    inputDom.addEventListener('input', () => {
+      if (isTextComposing) return;
+      updateMentionSuggestFromInput(inputDom);
+    });
+    inputDom.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (isImeComposing(e) || Date.now() < ignoreEnterUntil)) {
+        suppressEnterKeyup = true;
+        return;
+      }
+      if (isImeComposing(e)) return;
+
+      if (mentionSuggest && mentionSuggest.style.display !== 'none' && mentionCandidates.length > 0) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          mentionActiveIndex = (mentionActiveIndex + 1) % mentionCandidates.length;
+          renderMentionSuggest();
+          return;
+        }
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          mentionActiveIndex = (mentionActiveIndex - 1 + mentionCandidates.length) % mentionCandidates.length;
+          renderMentionSuggest();
+          return;
+        }
+        if (e.key === 'Tab' || e.key === 'Enter') {
+          const picked = mentionCandidates[Math.max(mentionActiveIndex, 0)];
+          if (picked) {
+            e.preventDefault();
+            if (e.key === 'Enter') suppressEnterKeyup = true;
+            applyMentionSelection(inputDom, picked);
+            return;
+          }
+        }
+      }
+
+      if (e.key === 'Enter') {
+        if (mentionSuggest && mentionSuggest.style.display !== 'none' && mentionCandidates.length > 0) {
+          // Enter는 keyup 전송으로 처리. 여기서는 입력창 기본 동작만 막음.
+          e.preventDefault();
+        }
+      }
+    });
+    inputDom.addEventListener('keyup', (e) => {
+      if (e.key !== 'Enter') return;
+      if (suppressEnterKeyup) {
+        suppressEnterKeyup = false;
+        return;
+      }
+      if (isImeComposing(e) || isTextComposing || Date.now() < ignoreEnterUntil) return;
+      sendChatMessage();
+    });
+    inputDom.addEventListener('blur', () => {
+      setTimeout(() => hideMentionSuggest(), 120);
+    });
+    submitBtn.addEventListener('click', sendChatMessage);
+  }
+
+  renderPartyAction();
+  syncRequestPanelEmpty();
+
+  window.closeTransferModal = closeTransferModal;
 </script>
 {% endblock %}

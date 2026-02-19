@@ -1,115 +1,57 @@
 {% extends "core/base.html" %}
-{% load static %}
 
-{% block title %}이용 가이드 - Party Match{% endblock %}
+{% block title %}이용 가이드{% endblock %}
 
 {% block content %}
 <style>
-    /* 가이드 페이지 전용 추가 스타일 */
-    .step-number {
-        font-size: 80px;
-        font-weight: 900;
-        color: rgba(255,255,255,0.05);
-        position: absolute;
-        top: -30px;
-        right: 20px;
-        z-index: 0;
-    }
-    .step-content { position: relative; z-index: 1; }
-    .feature-icon { font-size: 40px; margin-bottom: 20px; }
-    
-    /* 인스타그램 버튼 그라데이션 */
-    .btn-insta {
-        background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%);
-        color: white;
-        border: none;
-        padding: 15px 40px;
-        font-size: 18px;
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        transition: transform 0.2s;
-    }
-    .btn-insta:hover { transform: scale(1.05); filter: brightness(1.1); }
+  .guide-hero { text-align: center; padding: 24px 0 30px; }
+  .guide-hero h1 { margin: 0; font-size: clamp(2rem, 4.8vw, 3rem); }
+  .guide-hero p { color: var(--muted); }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .step { padding: 18px; position: relative; overflow: hidden; }
+  .step strong { display: block; margin-bottom: 8px; }
+  .step p { margin: 0; color: var(--muted); line-height: 1.55; }
+
+  .cta { text-align: center; padding: 20px; }
+
+  @media (max-width: 920px) {
+    .steps { grid-template-columns: 1fr; }
+  }
 </style>
 
-<section class="guide-section" style="text-align: center; padding: 120px 0 80px;">
-    <div data-aos="fade-up">
-        <h1 style="font-size: 50px; margin-bottom: 20px;">
-            더 빠르고, 더 완벽한<br>
-            <span class="text-gradient">파티 매칭의 시작.</span>
-        </h1>
-        <p class="lead" style="max-width: 600px; margin: 0 auto;">
-            기다림은 끝났습니다. 원하는 게임, 원하는 조건의 팀원을<br>
-            실시간으로 찾고 바로 플레이하세요.
-        </p>
-    </div>
-    <div style="margin-top: 50px;" data-aos="fade-up" data-aos-delay="200">
-        <span style="font-size: 40px;">👇</span>
-    </div>
+<section class="guide-hero">
+  <span class="badge">빠른 시작</span>
+  <h1>3단계로 바로 파티 시작</h1>
+  <p>가입 후 원하는 파티를 찾거나 직접 만들고, 채팅으로 합류 준비를 끝내세요.</p>
 </section>
 
-<section class="guide-section container">
-    <h2 style="text-align: center; margin-bottom: 60px;" data-aos="fade-up">
-        이렇게 사용하세요 <span class="text-gradient">⚡️ 3 STEP</span>
-    </h2>
+<section class="steps">
+  <article class="card step">
+    <strong>1. 회원가입 + 이메일 인증</strong>
+    <p>이메일 인증을 하면 파티 생성과 참여 기능을 모두 사용할 수 있습니다.</p>
+  </article>
 
-    <div class="grid" style="grid-template-columns: repeat(3, 1fr); gap: 30px;">
-        <div class="glass-card" data-aos="fade-right" data-aos-delay="100">
-            <div class="step-number">01</div>
-            <div class="step-content">
-                <div class="feature-icon">🔐</div>
-                <h3>일단, 가입부터</h3>
-                <p class="card-text">
-                    이메일 인증만 하면 준비 끝.<br>
-                    복잡한 절차 없이 30초면 정회원이 됩니다.
-                    프로필에서 내 주 게임과 장비를 설정해보세요.
-                </p>
-            </div>
-        </div>
+  <article class="card step">
+    <strong>2. 파티 찾기/만들기</strong>
+    <p>게임, 모드, 인원, 마이크 조건을 확인하고 가장 맞는 파티로 입장합니다.</p>
+  </article>
 
-        <div class="glass-card" data-aos="fade-up" data-aos-delay="300">
-            <div class="step-number">02</div>
-            <div class="step-content">
-                <div class="feature-icon">🔍</div>
-                <h3>찾거나, 만들거나</h3>
-                <p class="card-text">
-                    대기 중인 파티에 바로 탑승하거나,<br>
-                    내가 원하는 조건(마이크 필수, 티어 등)으로
-                    직접 방장이 되어 팀원을 모집하세요.
-                </p>
-            </div>
-        </div>
-
-        <div class="glass-card" data-aos="fade-left" data-aos-delay="500">
-            <div class="step-number">03</div>
-            <div class="step-content">
-                <div class="feature-icon">💬</div>
-                <h3>실시간 채팅 ㄱㄱ</h3>
-                <p class="card-text">
-                    파티에 참여하면 전용 채팅방이 열립니다.<br>
-                    디스코드 링크 공유, 작전 회의 후<br>
-                    바로 게임으로 출발하세요!
-                </p>
-            </div>
-        </div>
-    </div>
+  <article class="card step">
+    <strong>3. 실시간 채팅 후 게임 시작</strong>
+    <p>채팅방에서 디스코드 링크나 준비 상태를 맞추고 바로 출발합니다.</p>
+  </article>
 </section>
 
-<section class="guide-section" style="background: rgba(0,0,0,0.2); text-align: center; padding: 100px 0;">
-    <div class="container" data-aos="zoom-in">
-        <h2 style="font-size: 36px; margin-bottom: 20px;">궁금한 점이 있으신가요?</h2>
-        <p class="lead" style="margin-bottom: 40px;">
-            사이트 이용 중 불편한 점이나 제안 사항은<br>
-            인스타그램 DM으로 보내주시면 빠르게 확인하겠습니다.
-        </p>
-        
-        <a href="https://www.instagram.com/srsxb10_/" target="_blank" class="btn btn-insta">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M8 0C5.829 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.917 3.917 0 0 0-1.417.923A3.927 3.927 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8.001c0 2.172.01 2.444.048 3.297.04.852.174 1.433.372 1.942.205.526.478.972.923 1.417.444.445.89.719 1.416.923.51.198 1.09.333 1.942.372C5.555 15.99 5.827 16 8 16s2.444-.01 3.298-.048c.851-.04 1.434-.174 1.943-.372a3.916 3.916 0 0 0 1.416-.923c.445-.445.718-.891.923-1.417.198-.509.332-1.09.372-1.942C15.99 10.445 16 10.173 16 8s-.01-2.445-.048-3.299c-.04-.851-.175-1.433-.372-1.941a3.926 3.926 0 0 0-.923-1.417A3.911 3.911 0 0 0 13.24.42c-.51-.198-1.092-.333-1.943-.372C10.443.01 10.172 0 8 0zm0 1.44c2.136 0 2.415.01 3.269.048.79.037 1.218.177 1.504.288.38.148.653.322.94.609.287.287.46.56.608.94.112.286.252.714.289 1.504.038.854.048 1.133.048 3.269 0 2.136-.01 2.415-.048 3.269-.037.79-.177 1.218-.288 1.504a2.542 2.542 0 0 1-.609.94c-.287.287-.56.46-.94.608-.286.112-.714.252-1.504.289-.854.038-1.133.048-3.269.048-2.136 0-2.415-.01-3.269-.048-.79-.037-1.218-.177-1.504-.288a2.514 2.514 0 0 1-.94-.609c-.287-.287-.46-.56-.608-.94-.112-.286-.252-.714-.289-1.504-.038-.854-.048-1.133-.048-3.269 0-2.136.01-2.415.048-3.269.037-.79.177-1.218.288-1.504.148-.38.322-.653.609-.94.287-.287.56-.46.94-.608.286-.112.714-.252 1.504-.289.854-.038 1.133-.048 3.269-.048zm0 2.43a4.13 4.13 0 1 0 0 8.26 4.13 4.13 0 0 0 0-8.26zm0 6.82a2.69 2.69 0 1 1 0-5.38 2.69 2.69 0 0 1 0 5.38zm5.275-5.57a.96.96 0 1 0 0-1.92.96.96 0 0 0 0 1.92z"/>
-            </svg>
-            @srsxb10_ 으로 문의하기
-        </a>
-    </div>
+<section class="panel cta">
+  <h2 style="margin:0 0 8px;">문의 또는 피드백</h2>
+  <p style="color:var(--muted);margin:0 0 14px;">사용 중 불편한 점이나 개선 아이디어를 알려주세요.</p>
+  <a href="https://www.instagram.com/srsxb10_/" target="_blank" rel="noreferrer" class="btn btn-solid">인스타그램 DM 보내기</a>
 </section>
 {% endblock %}

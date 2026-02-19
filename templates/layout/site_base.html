@@ -1,0 +1,58 @@
+{% load static %}
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Live Party{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'core/app.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <div class="bg-shape bg-shape-a" aria-hidden="true"></div>
+  <div class="bg-shape bg-shape-b" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <div class="shell header-row">
+      <a class="brand" href="{% url 'main' %}">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-text">LIVE PARTY</span>
+      </a>
+
+      <nav class="main-nav">
+        <a class="nav-chip {% if '/parties/' in request.path and '/create/' not in request.path %}is-active{% endif %}" href="{% url 'party_list' %}">파티 찾기</a>
+        <a class="nav-chip {% if '/parties/create/' in request.path %}is-active{% endif %}" href="{% url 'party_create' %}">파티 만들기</a>
+        <a class="nav-chip {% if '/guide/' in request.path %}is-active{% endif %}" href="{% url 'guide' %}">가이드</a>
+      </nav>
+
+      <div class="header-actions">
+        {% if user.is_authenticated %}
+          <a class="btn btn-ghost" href="{% url 'profile' %}">내 프로필</a>
+          <form method="post" action="{% url 'account_logout' %}">
+            {% csrf_token %}
+            <button class="btn btn-ghost" type="submit">로그아웃</button>
+          </form>
+        {% else %}
+          <a class="btn btn-ghost" href="{% url 'account_login' %}">로그인</a>
+          <a class="btn btn-solid" href="{% url 'account_signup' %}">회원가입</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  <main class="shell page-wrap">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell">
+      <p>© {% now "Y" %} Live Party · 실시간 게임 파티 매칭 서비스</p>
+    </div>
+  </footer>
+
+  {% block extra_script %}{% endblock %}
+</body>
+</html>

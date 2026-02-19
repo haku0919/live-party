@@ -63,7 +63,7 @@ def handle_member_change(sender, instance, created, **kwargs):
     for member in active_members:
         members_data.append({
             'id': member.user.id,
-            'nickname': member.user.nickname,
+            'nickname': member.user.nickname if member.user.nickname else member.user.username,
             'is_host': (member.user == party.host)
         })
 
@@ -137,9 +137,13 @@ def broadcast_party_update(sender, instance, created, **kwargs):
         "title": instance.mode,
         "game": instance.game.name,
         "host": instance.host.nickname if instance.host.nickname else instance.host.username,
+        "description": instance.description or "",
+        "mic_required": instance.mic_required,
+        "join_policy": instance.join_policy,
         "current_count": instance.current_member_count,
         "max_members": instance.max_members,
         "status": instance.get_status_display(),
+        "status_code": instance.status,
     }
 
     # 생성/수정 모두 party_update로 처리하고, is_new 플래그로 프론트 분기
@@ -147,4 +151,13 @@ def broadcast_party_update(sender, instance, created, **kwargs):
     async_to_sync(channel_layer.group_send)(
         "lobby",
         {"type": "party_update", "party_data": data, "is_new": created}
+    )
+
+    # 파티 상세 화면에 메타데이터 변경을 실시간 반영함.
+    async_to_sync(channel_layer.group_send)(
+        f"chat_{instance.id}",
+        {
+            "type": "party_meta_update",
+            "party": data,
+        },
     )
