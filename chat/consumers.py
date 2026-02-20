@@ -24,6 +24,39 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
 
+        # 연결 직후 현재 멤버 목록·인원수를 신규 클라이언트에게 전송
+        # → 호스트가 파티 생성 후 접속 시 퍼센트 바가 즉시 표시됨
+        members_data, count = await self.get_initial_state()
+        await self.send(text_data=json.dumps({
+            "type": "member_list_update",
+            "members": members_data,
+        }))
+        await self.send(text_data=json.dumps({
+            "type": "count_update",
+            "count": count,
+        }))
+
+    @database_sync_to_async
+    def get_initial_state(self):
+        try:
+            party = Party.objects.select_related("host").get(id=self.room_name)
+            members = (
+                PartyMember.objects.filter(party=party, is_active=True)
+                .select_related("user")
+                .order_by("joined_at")
+            )
+            members_data = [
+                {
+                    "id": m.user.id,
+                    "nickname": m.user.nickname if m.user.nickname else m.user.username,
+                    "is_host": m.user_id == party.host_id,
+                }
+                for m in members
+            ]
+            return members_data, party.current_member_count
+        except Party.DoesNotExist:
+            return [], 0
+
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
@@ -38,9 +71,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
 
         mention_user_ids = await self.resolve_mentions(message)
-        nickname = getattr(self.user, "nickname", self.user.username)
+        nickname = getattr(self.user, "nickname", None) or self.user.username
 
-        saved = await self.save_message(message)
+        saved = await self.save_message(message, nickname)
         if not saved:
             return
 
@@ -57,10 +90,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
     @database_sync_to_async
-    def save_message(self, message):
+    def save_message(self, message, sender_name):
         try:
             party = Party.objects.get(id=self.room_name)
-            created = ChatMessage.objects.create(party=party, user=self.user, content=message)
+            created = ChatMessage.objects.create(
+                party=party,
+                user=self.user,
+                content=message,
+                sender_name=sender_name,
+            )
             return {"id": created.id}
         except Party.DoesNotExist:
             return None

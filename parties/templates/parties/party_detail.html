@@ -47,15 +47,20 @@
 
   .meter {
     width: 100%;
-    height: 8px;
+    height: 10px;
+    min-height: 10px;
+    flex: 0 0 10px;
     border-radius: 999px;
     overflow: hidden;
     background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
   }
 
   .meter > div {
+    display: block;
     height: 100%;
     background: linear-gradient(120deg, var(--brand), var(--ok));
+    box-shadow: 0 0 14px rgba(47, 199, 179, 0.35);
     transition: width 180ms ease;
   }
 
@@ -229,15 +234,20 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 6px;
+    width: fit-content;
+    max-width: min(75%, 550px);
   }
 
   .mine .message-content {
     align-items: flex-end;
+    margin-left: auto;
   }
 
   .message-bubble {
-    max-width: min(75%, 550px);
-    min-width: 2.4em;
+    display: block;
+    width: auto;
+    max-width: 100%;
+    min-width: 2.8em;
     padding: 9px 12px;
     border-radius: 12px;
     line-height: 1.45;
@@ -384,7 +394,7 @@
     </div>
 
     <div class="meter">
-      <div id="progress-bar" style="width: {% widthratio party.current_member_count party.max_members 100 %}%;"></div>
+      <div id="progress-bar" style="width:{% widthratio party.current_member_count party.max_members 100 %}%;height:100%;background:linear-gradient(120deg,var(--brand),var(--ok));"></div>
     </div>
     <p id="member-progress-percent" style="margin:6px 0 0;color:var(--muted);font-size:.78rem;">
       {% widthratio party.current_member_count party.max_members 100 %}%
@@ -651,9 +661,7 @@
   let mentionActiveIndex = -1;
   let mentionCandidates = [];
   let isTextComposing = false;
-  let ignoreEnterUntil = 0;
   let lastSendAt = 0;
-  let suppressEnterKeyup = false;
 
   const chatLog = document.getElementById('chat-log');
   const partyActionContainer = document.getElementById('party-action-container');
@@ -1313,9 +1321,27 @@
   syncPinButtonsForHost();
 
   const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-  const chatSocket = new WebSocket(protocol + window.location.host + '/ws/chat/' + partyId + '/');
+  let chatSocket;
+  let reconnectAttempts = 0;
+  let reconnectTimer = null;
 
-  chatSocket.onmessage = function (e) {
+  function connectChatSocket() {
+    chatSocket = new WebSocket(protocol + window.location.host + '/ws/chat/' + partyId + '/');
+    chatSocket.onopen = function () {
+      reconnectAttempts = 0;
+      if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    };
+    chatSocket.onclose = function (e) {
+      if (e.code === 1000) return; // 정상 종료
+      const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 15000);
+      reconnectAttempts++;
+      appendSystemMessage(`연결이 끊겼습니다. ${Math.round(delay / 1000)}초 후 재연결합니다...`, '#ffb5a9');
+      reconnectTimer = setTimeout(connectChatSocket, delay);
+    };
+    chatSocket.onmessage = onChatMessage;
+  }
+
+  function onChatMessage(e) {
     const data = JSON.parse(e.data);
 
     if (data.type === 'chat_message') {
@@ -1335,12 +1361,6 @@
     }
 
     if (data.type === 'system_message') {
-      if (
-        (data.code === 'host_transferred' || data.code === 'party_settings_updated')
-        && String(data.actor_user_id) === String(currentUserId)
-      ) {
-        return;
-      }
       appendSystemMessage(data.message || '시스템 메시지');
       return;
     }
@@ -1457,19 +1477,26 @@
         document.getElementById('party-end-modal').style.display = 'flex';
       }
     }
-  };
+  }
+
+  connectChatSocket();
 
   const inputDom = document.getElementById('chat-message-input');
   const submitBtn = document.getElementById('chat-message-submit');
   const sendChatMessage = () => {
     if (!inputDom || !submitBtn) return;
-    if (isTextComposing || Date.now() < ignoreEnterUntil) return;
+    if (isTextComposing) return;
 
     const now = Date.now();
     if (now - lastSendAt < 120) return;
 
     const message = inputDom.value.replace(/\r?\n/g, '').trim();
     if (!message) return;
+
+    if (!chatSocket || chatSocket.readyState !== WebSocket.OPEN) {
+      appendSystemMessage('연결 중입니다. 잠시 후 다시 시도해주세요.', '#ffb5a9');
+      return;
+    }
 
     lastSendAt = now;
     chatSocket.send(JSON.stringify({ message }));
@@ -1481,12 +1508,9 @@
     inputDom.focus();
     inputDom.addEventListener('compositionstart', () => {
       isTextComposing = true;
-      ignoreEnterUntil = Date.now() + 350;
     });
     inputDom.addEventListener('compositionend', () => {
       isTextComposing = false;
-      // 일부 IME/브라우저는 조합 확정 직후 Enter keydown이 추가 발생함.
-      ignoreEnterUntil = Date.now() + 250;
       updateMentionSuggestFromInput(inputDom);
     });
     inputDom.addEventListener('input', () => {
@@ -1494,10 +1518,6 @@
       updateMentionSuggestFromInput(inputDom);
     });
     inputDom.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && (isImeComposing(e) || Date.now() < ignoreEnterUntil)) {
-        suppressEnterKeyup = true;
-        return;
-      }
       if (isImeComposing(e)) return;
 
       if (mentionSuggest && mentionSuggest.style.display !== 'none' && mentionCandidates.length > 0) {
@@ -1517,7 +1537,6 @@
           const picked = mentionCandidates[Math.max(mentionActiveIndex, 0)];
           if (picked) {
             e.preventDefault();
-            if (e.key === 'Enter') suppressEnterKeyup = true;
             applyMentionSelection(inputDom, picked);
             return;
           }
@@ -1525,20 +1544,9 @@
       }
 
       if (e.key === 'Enter') {
-        if (mentionSuggest && mentionSuggest.style.display !== 'none' && mentionCandidates.length > 0) {
-          // Enter는 keyup 전송으로 처리. 여기서는 입력창 기본 동작만 막음.
-          e.preventDefault();
-        }
+        e.preventDefault();
+        sendChatMessage();
       }
-    });
-    inputDom.addEventListener('keyup', (e) => {
-      if (e.key !== 'Enter') return;
-      if (suppressEnterKeyup) {
-        suppressEnterKeyup = false;
-        return;
-      }
-      if (isImeComposing(e) || isTextComposing || Date.now() < ignoreEnterUntil) return;
-      sendChatMessage();
     });
     inputDom.addEventListener('blur', () => {
       setTimeout(() => hideMentionSuggest(), 120);
