@@ -6,3 +6,4 @@ mysqlclient==2.2.7
 django-allauth==65.14.0
 django-widget-tweaks==1.5.0
 redis==6.1.1
+whitenoise==6.9.0
